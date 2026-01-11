@@ -1,0 +1,99 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Member {
+  id              Int              @id @default(autoincrement())
+  createdAt       DateTime         @default(now())
+  mobile          String           @unique
+  name            String?
+  address         String?
+  fathersName     String?
+  account         Account?
+  transactionLogs TransactionLog[]
+  loans           Loan[]
+}
+
+model Account {
+  id              Int              @id @default(autoincrement())
+  accountNumber   String           @unique
+  totalAmount     Float            @default(0)
+  createdAt       DateTime         @default(now())
+  memberId        Int              @unique
+  member          Member           @relation(fields: [memberId], references: [id])
+  transactionLogs TransactionLog[]
+}
+
+model Operator {
+  username String @unique @id
+  password String
+}
+
+model Organisation {
+  id      Int    @id @default(1)
+  name    String
+  amount  Float  @default(0)
+  penalty Float  @default(0)
+  profit  Float  @default(0)
+}
+
+model TransactionLog {
+  id             Int      @id @default(autoincrement())
+  memberId       Int
+  member         Member   @relation(fields: [memberId], references: [id])
+  accountId      Int
+  account        Account  @relation(fields: [accountId], references: [id])
+  basicPay       Float
+  developmentFee Float
+  penalty        Float
+  createdAt      DateTime @default(now())
+}
+
+model Loan {
+  id                Int           @id @default(autoincrement())
+  memberId          Int
+  member            Member        @relation(fields: [memberId], references: [id])
+  principalAmount   Float
+  interestRate      Float
+  timePeriod        Int
+  emiAmount         Float
+  remainingBalance  Float
+  totalInterestPaid Float         @default(0)
+  status            String        @default("ACTIVE")
+  createdAt         DateTime      @default(now())
+  completedAt       DateTime?
+  loanPayments      LoanPayment[]
+}
+
+model LoanPayment {
+  id             Int      @id @default(autoincrement())
+  loanId         Int
+  loan           Loan     @relation(fields: [loanId], references: [id])
+  principalPaid  Float
+  interestPaid   Float
+  penalty        Float    @default(0)
+  extraPrincipal Float    @default(0)
+  totalPaid      Float
+  remainingAfter Float
+  createdAt      DateTime @default(now())
+}
+
+model AuditLog {
+  id             Int      @id @default(autoincrement())
+  totalProfit    Float
+  memberCount    Int
+  perMemberShare Float
+  createdAt      DateTime @default(now())
+}
+
+model OrgWithdrawal {
+  id        Int      @id @default(autoincrement())
+  purpose   String
+  amount    Float
+  source    String   // "AMOUNT" or "PENALTY"
+  createdAt DateTime @default(now())
+}
