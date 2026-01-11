@@ -22,6 +22,8 @@ export const createMemberSchema = z.object({
         .max(100, "Father's name must be at most 100 characters")
         .optional()
         .nullable(),
+    initialAmount: z.number().or(z.string()).optional(),
+    developmentFee: z.number().or(z.string()).optional(),
 });
 
 export const updateMemberSchema = z.object({

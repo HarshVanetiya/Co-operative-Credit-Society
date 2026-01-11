@@ -29,7 +29,7 @@ const LoanModal = ({ isOpen, onClose, onSuccess, maxAmount }) => {
       
       // Get all active loans to filter out members who already have one
       const loansRes = await api.get('/loan/all?status=ACTIVE');
-      const membersWithActiveLoans = new Set(loansRes.data.map(loan => loan.memberId));
+      const membersWithActiveLoans = new Set(loansRes.data.data.map(loan => loan.memberId));
       
       // Filter to only members without active loans
       const eligibleMembers = membersRes.data.filter(
