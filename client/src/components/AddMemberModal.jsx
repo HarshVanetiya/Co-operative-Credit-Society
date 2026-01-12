@@ -8,7 +8,8 @@ const AddMemberModal = ({ isOpen, onClose, onSuccess }) => {
     fathersName: '',
     mobile: '',
     address: '',
-    initialAmount: '',
+    accountNumber: '',
+    initialAmount: '151365',
     developmentFee: '',
   });
   const [loading, setLoading] = useState(false);
@@ -43,6 +44,7 @@ const AddMemberModal = ({ isOpen, onClose, onSuccess }) => {
         fathersName: '', 
         mobile: '', 
         address: '',
+        accountNumber: '',
         initialAmount: '',
         developmentFee: '',
       });
@@ -84,17 +86,31 @@ const AddMemberModal = ({ isOpen, onClose, onSuccess }) => {
           />
         </div>
 
-        <div className="form-group">
-          <label className="label">Mobile Number *</label>
-          <input
-            type="text"
-            name="mobile"
-            value={formData.mobile}
-            onChange={handleChange}
-            className="input"
-            placeholder="Enter mobile number"
-            required
-          />
+        <div className="form-row">
+            <div className="form-group">
+            <label className="label">Mobile Number *</label>
+            <input
+                type="text"
+                name="mobile"
+                value={formData.mobile}
+                onChange={handleChange}
+                className="input"
+                placeholder="Enter mobile number"
+                required
+            />
+            </div>
+            <div className="form-group">
+            <label className="label">Account Number *</label>
+            <input
+                type="text"
+                name="accountNumber"
+                value={formData.accountNumber}
+                onChange={handleChange}
+                className="input"
+                placeholder="Unique Account No."
+                required
+            />
+            </div>
         </div>
 
         <div className="form-group">

@@ -162,9 +162,8 @@ const MemberDetails = () => {
                 type="text"
                 name="mobile"
                 value={member.mobile || ''}
-                readOnly
-                className="input read-only"
-                title="Mobile number cannot be changed"
+                onChange={handleChange}
+                className="input"
               />
             </div>
 

@@ -196,14 +196,15 @@ export const getAllLoans = async (req, res) => {
     }
 };
 
-// Pay EMI for a loan
+// Pay EMI for a loan (Flexible Payment)
 export const payLoanEmi = async (req, res) => {
     const { id } = req.params;
-    const { penalty = 0, extraPrincipal = 0 } = req.body;
+    // principalPaid is now the amount user WANTS to pay towards principal
+    const { penalty = 0, principalPaid } = req.body;
 
     try {
         const penaltyAmount = parseFloat(penalty) || 0;
-        const extraPrincipalAmount = parseFloat(extraPrincipal) || 0;
+        let requestedPrincipalInfo = parseFloat(principalPaid);
 
         // Get the loan
         const loan = await prisma.loan.findUnique({
@@ -220,36 +221,53 @@ export const payLoanEmi = async (req, res) => {
 
         // Calculate interest on remaining balance
         const interestAmount = loan.remainingBalance * loan.interestRate;
+
+        // Validation
+        if (isNaN(requestedPrincipalInfo) || requestedPrincipalInfo < 0) {
+             return res.status(400).json({ error: "Invalid principal amount" });
+        }
         
-        // Determine principal to pay (either full EMI or remaining balance, whichever is smaller)
-        const emiPrincipal = Math.min(loan.emiAmount, loan.remainingBalance);
+        // Cannot pay more principal than remaining
+        if (requestedPrincipalInfo > loan.remainingBalance) {
+            // Cap it if they sent too much, or error? Let's error to be safe or cap it. 
+            // Better to cap it to act as "Full Settlement"
+            requestedPrincipalInfo = loan.remainingBalance; 
+        }
+
+        const actualPrincipalPaid = requestedPrincipalInfo;
+
+        // Calculate "extra" component for analytics (anything above the standard EMI principal part)
+        // Standard EMI principal part for this month would ideally be (EMI - Interest), but EMI is fixed.
+        // Actually, previous logic was: emiPrincipal = Math.min(loan.emiAmount, loan.remainingBalance)
+        // We can keep a loose definition: 
+        // If they pay MORE than the standard EMI's principal component, that diff is "extra".
+        // Standard emiPrincipal expectation:
+        const standardEmiPrincipal = Math.min(loan.emiAmount, loan.remainingBalance);
         
-        // Calculate max extra principal (can't pay more than remaining balance after EMI)
-        const remainingAfterEmi = loan.remainingBalance - emiPrincipal;
-        const actualExtraPrincipal = Math.min(extraPrincipalAmount, remainingAfterEmi);
+        // If they pay less than standard, extra is 0. If more, extra is difference.
+        // NOTE: This is just for record keeping in LoanPayment table.
+        const extraPrincipal = Math.max(0, actualPrincipalPaid - standardEmiPrincipal);
         
-        // Total principal paid (EMI + extra)
-        const totalPrincipalPaid = emiPrincipal + actualExtraPrincipal;
-        
-        // Calculate total payment
-        const totalPayment = totalPrincipalPaid + interestAmount + penaltyAmount;
+        // Total payment
+        const totalPayment = actualPrincipalPaid + interestAmount + penaltyAmount;
         
         // New remaining balance
-        const newRemainingBalance = loan.remainingBalance - totalPrincipalPaid;
+        const newRemainingBalance = loan.remainingBalance - actualPrincipalPaid;
         
         // Check if loan is completed
-        const isCompleted = newRemainingBalance <= 0;
+        // specific check for small float errors, though < 1 is safe enough for "zero" usually, <=0 is best.
+        const isCompleted = newRemainingBalance <= 0.01; 
 
         // Use transaction to ensure atomicity
         const result = await prisma.$transaction(async (tx) => {
-            // Create payment record (principalPaid includes both EMI and extra principal)
+            // Create payment record
             const payment = await tx.loanPayment.create({
                 data: {
                     loanId: parseInt(id),
-                    principalPaid: totalPrincipalPaid,
+                    principalPaid: actualPrincipalPaid,
                     interestPaid: interestAmount,
                     penalty: penaltyAmount,
-                    extraPrincipal: actualExtraPrincipal,
+                    extraPrincipal: extraPrincipal,
                     totalPaid: totalPayment,
                     remainingAfter: Math.max(0, newRemainingBalance)
                 }
@@ -285,8 +303,8 @@ export const payLoanEmi = async (req, res) => {
 
         res.status(200).json(result);
     } catch (error) {
-        console.error("Error processing EMI payment:", error);
-        res.status(500).json({ error: "Failed to process EMI payment" });
+        console.error("Error processing loan payment:", error);
+        res.status(500).json({ error: "Failed to process loan payment" });
     }
 };
 

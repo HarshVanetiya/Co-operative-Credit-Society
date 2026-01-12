@@ -8,7 +8,7 @@ const generateAccountNumber = () => {
 };
 
 export const createMember = async (req, res) => {
-    const { name, mobile, address, fathersName, initialAmount, developmentFee } = req.body;
+    const { name, mobile, address, fathersName, initialAmount, developmentFee, accountNumber } = req.body;
     try {
         const accountBalance = parseFloat(initialAmount) || 0;
         const devFee = parseFloat(developmentFee) || 0;
@@ -24,7 +24,7 @@ export const createMember = async (req, res) => {
                     fathersName,
                     account: {
                         create: {
-                            accountNumber: generateAccountNumber(),
+                            accountNumber: accountNumber, // Use provided account number
                             totalAmount: accountBalance
                         }
                     }
@@ -49,10 +49,20 @@ export const createMember = async (req, res) => {
 
         res.status(201).json(result);
     } catch (error) {
-        console.log(error);
+        console.log("Error creating member:", error);
+        
+        // Handle specific error for unique constraint violation (account number)
         if (error.code === 'P2002') {
-            return res.status(409).json({ error: "Member with this mobile number already exists" });
+             // The meta target will tell us which field failed. 
+             // With recent prisma versions, it might be in meta.target
+             const target = error.meta?.target || [];
+             if (target.includes('accountNumber')) {
+                 return res.status(409).json({ error: "Account number already exists" });
+             }
+             // Fallback if we can't identify exactly but code is P2002
+             return res.status(409).json({ error: "A unique constraint failed. Check account number." });
         }
+
         res.status(500).json({ error: "Failed to create member" });
     }
 };

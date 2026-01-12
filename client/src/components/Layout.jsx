@@ -1,6 +1,6 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Home, Users, LogOut, LayoutDashboard, History, CircleDollarSign } from 'lucide-react';
+import { Home, Users, LogOut, LayoutDashboard, History, CircleDollarSign, FileText } from 'lucide-react';
 
 const SidebarItem = ({ to, icon: Icon, children }) => (
   <NavLink
@@ -39,6 +39,7 @@ const Layout = () => {
           <SidebarItem to="/members" icon={Users}>Members</SidebarItem>
           <SidebarItem to="/loans" icon={CircleDollarSign}>Loans</SidebarItem>
           <SidebarItem to="/history" icon={History}>History</SidebarItem>
+          <SidebarItem to="/activity" icon={FileText}>Activity</SidebarItem>
         </nav>
 
         <div className="sidebar-footer">

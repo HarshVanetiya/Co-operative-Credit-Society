@@ -5,25 +5,33 @@ import { Loader } from 'lucide-react';
 
 const LoanPaymentModal = ({ isOpen, onClose, loan, onSuccess }) => {
   const [penalty, setPenalty] = useState('');
-  const [extraPrincipal, setExtraPrincipal] = useState('');
+  const [principal, setPrincipal] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Initialize principal with standard EMI amount when modal opens
+  if (!loan && isOpen) return null; // Safety check
+  
+  // We need to set the initial principal value when loan data becomes available or modal opens
+  // However, doing this in render or effect needs care to avoid loops.
+  // Let's use a key or just default it in state initialization if possible, 
+  // but loan prop might change. 
+  // Better approach: Use useEffect to reset state when modal opens.
+  
+  // Use a separate useEffect for initialization
+  // Note: We can't use hooks conditionally so we'll just put it at the top level
+  // but we need to guard against loan being null in the effect.
+  
   if (!loan) return null;
 
-  // Calculate payment details
   const interestAmount = loan.remainingBalance * loan.interestRate;
-  const emiPrincipal = Math.min(loan.emiAmount, loan.remainingBalance);
+  const standardEmiPrincipal = Math.min(loan.emiAmount, loan.remainingBalance);
+
+  // Derive values from state for rendering
+  const principalAmount = principal === '' ? standardEmiPrincipal : (parseFloat(principal) || 0);
   const penaltyAmount = parseFloat(penalty) || 0;
-  const extraPrincipalAmount = parseFloat(extraPrincipal) || 0;
   
-  // Max extra principal is remaining balance after EMI
-  const remainingAfterEmi = loan.remainingBalance - emiPrincipal;
-  const actualExtraPrincipal = Math.min(extraPrincipalAmount, remainingAfterEmi);
-  
-  // Total principal and total payment
-  const totalPrincipalPaid = emiPrincipal + actualExtraPrincipal;
-  const totalPayment = totalPrincipalPaid + interestAmount + penaltyAmount;
+  const totalPayment = principalAmount + interestAmount + penaltyAmount;
 
   const handlePenaltyChange = (e) => {
     const value = e.target.value;
@@ -33,10 +41,10 @@ const LoanPaymentModal = ({ isOpen, onClose, loan, onSuccess }) => {
     }
   };
 
-  const handleExtraPrincipalChange = (e) => {
+  const handlePrincipalChange = (e) => {
     const value = e.target.value;
     if (value === '' || /^\d*\.?\d*$/.test(value)) {
-      setExtraPrincipal(value);
+      setPrincipal(value);
       setError('');
     }
   };
@@ -47,13 +55,20 @@ const LoanPaymentModal = ({ isOpen, onClose, loan, onSuccess }) => {
     setLoading(true);
     setError('');
 
+    // Additional Validation
+    if (principalAmount > loan.remainingBalance) {
+        setError(`Principal cannot exceed remaining balance (₹${loan.remainingBalance})`);
+        setLoading(false);
+        return;
+    }
+
     try {
       await api.post(`/loan/pay/${loan.id}`, {
         penalty: penaltyAmount,
-        extraPrincipal: actualExtraPrincipal,
+        principalPaid: principalAmount,
       });
 
-      alert('EMI payment recorded successfully!');
+      alert('Payment recorded successfully!');
       handleClose();
       if (onSuccess) onSuccess();
     } catch (err) {
@@ -66,7 +81,7 @@ const LoanPaymentModal = ({ isOpen, onClose, loan, onSuccess }) => {
 
   const handleClose = () => {
     setPenalty('');
-    setExtraPrincipal('');
+    setPrincipal(''); // Reset to empty to trigger default on next open if needed, or better logic in parent
     setError('');
     onClose();
   };
@@ -76,13 +91,13 @@ const LoanPaymentModal = ({ isOpen, onClose, loan, onSuccess }) => {
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} title="Pay EMI">
+    <Modal isOpen={isOpen} onClose={handleClose} title="Pay Loan">
       <form onSubmit={handleSubmit} className="login-form">
         {error && <div className="error-message">{error}</div>}
 
         {/* Payment Summary */}
         <div className="payment-summary-card">
-          <h4>Payment Summary</h4>
+          <h4>Payment Breakdown</h4>
           
           <div className="summary-row">
             <span>Current Balance:</span>
@@ -90,20 +105,13 @@ const LoanPaymentModal = ({ isOpen, onClose, loan, onSuccess }) => {
           </div>
           
           <div className="summary-row">
-            <span>EMI (Principal):</span>
-            <span className="value">{formatCurrency(emiPrincipal)}</span>
-          </div>
-          
-          {actualExtraPrincipal > 0 && (
-            <div className="summary-row extra-principal-row">
-              <span>Extra Principal:</span>
-              <span className="value">{formatCurrency(actualExtraPrincipal)}</span>
-            </div>
-          )}
-          
-          <div className="summary-row">
             <span>Interest ({(loan.interestRate * 100).toFixed(1)}%):</span>
             <span className="value">{formatCurrency(interestAmount)}</span>
+          </div>
+
+          <div className="summary-row">
+             <span>Principal Payment:</span>
+             <span className="value">{formatCurrency(principalAmount)}</span>
           </div>
           
           <div className="summary-row">
@@ -112,31 +120,31 @@ const LoanPaymentModal = ({ isOpen, onClose, loan, onSuccess }) => {
           </div>
           
           <div className="summary-row total">
-            <span>Total Payment:</span>
+            <span>Total To Pay:</span>
             <span className="value">{formatCurrency(totalPayment)}</span>
           </div>
 
           <div className="summary-row remaining">
             <span>Remaining After Payment:</span>
             <span className="value">
-              {formatCurrency(Math.max(0, loan.remainingBalance - totalPrincipalPaid))}
+              {formatCurrency(Math.max(0, loan.remainingBalance - principalAmount))}
             </span>
           </div>
         </div>
 
-        {/* Extra Principal Input */}
+        {/* Principal Input */}
         <div className="form-group">
-          <label className="label">Extra Principal (₹)</label>
+          <label className="label">Principal Amount (₹)</label>
           <input
             type="text"
-            value={extraPrincipal}
-            onChange={handleExtraPrincipalChange}
+            value={principal === '' ? standardEmiPrincipal : principal}
+            onChange={handlePrincipalChange}
             className="input"
-            placeholder="Pay extra to reduce principal (optional)"
+            placeholder={`Default: ${standardEmiPrincipal}`}
             disabled={loading}
           />
           <small className="help-text">
-            Paying extra reduces principal, lowering future interest. Max: {formatCurrency(remainingAfterEmi)}
+            You can adjust the principal amount. Max: {formatCurrency(loan.remainingBalance)}
           </small>
         </div>
 

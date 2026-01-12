@@ -2,6 +2,7 @@ import { z } from "zod";
 
 // Member validation schemas
 export const createMemberSchema = z.object({
+    accountNumber: z.string({ required_error: "Account number is required" }).min(1, "Account number is required"),
     mobile: z
         .string({ required_error: "Mobile number is required" })
         .min(10, "Mobile number must be at least 10 digits")

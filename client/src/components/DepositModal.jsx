@@ -5,8 +5,8 @@ import { Loader } from 'lucide-react';
 
 const DepositModal = ({ isOpen, onClose, member, onSuccess }) => {
   const [formData, setFormData] = useState({
-    basicAmount: '',
-    developmentFee: '',
+    basicAmount: '500',
+    developmentFee: '20',
     penalty: '',
   });
   const [loading, setLoading] = useState(false);

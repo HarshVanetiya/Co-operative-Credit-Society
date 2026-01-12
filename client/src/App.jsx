@@ -7,6 +7,7 @@ import History from './pages/History';
 import Loans from './pages/Loans';
 import LoanDetails from './pages/LoanDetails';
 import OrgExpenses from './pages/OrgExpenses';
+import Activity from './pages/Activity';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
 
@@ -24,6 +25,7 @@ function App() {
           <Route path="/loans" element={<Loans />} />
           <Route path="/loans/:id" element={<LoanDetails />} />
           <Route path="/org-expenses" element={<OrgExpenses />} />
+          <Route path="/activity" element={<Activity />} />
         </Route>
       </Route>
 

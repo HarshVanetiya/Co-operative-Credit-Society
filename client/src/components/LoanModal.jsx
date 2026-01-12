@@ -9,7 +9,7 @@ const LoanModal = ({ isOpen, onClose, onSuccess, maxAmount }) => {
   const [formData, setFormData] = useState({
     memberId: '',
     principalAmount: '',
-    interestRate: '2',
+    interestRate: '1',
     timePeriod: '',
   });
   const [loading, setLoading] = useState(false);
