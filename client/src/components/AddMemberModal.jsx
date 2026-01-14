@@ -88,7 +88,7 @@ const AddMemberModal = ({ isOpen, onClose, onSuccess }) => {
 
         <div className="form-row">
             <div className="form-group">
-            <label className="label">Mobile Number *</label>
+            <label className="label">Mobile Number</label>
             <input
                 type="text"
                 name="mobile"
@@ -96,7 +96,6 @@ const AddMemberModal = ({ isOpen, onClose, onSuccess }) => {
                 onChange={handleChange}
                 className="input"
                 placeholder="Enter mobile number"
-                required
             />
             </div>
             <div className="form-group">

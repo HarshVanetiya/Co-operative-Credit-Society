@@ -4,10 +4,12 @@ import { z } from "zod";
 export const createMemberSchema = z.object({
     accountNumber: z.string({ required_error: "Account number is required" }).min(1, "Account number is required"),
     mobile: z
-        .string({ required_error: "Mobile number is required" })
+        .string()
         .min(10, "Mobile number must be at least 10 digits")
         .max(15, "Mobile number must be at most 15 digits")
-        .regex(/^[0-9]+$/, "Mobile number must contain only digits"),
+        .regex(/^[0-9]+$/, "Mobile number must contain only digits")
+        .optional()
+        .or(z.literal('')),
     name: z
         .string()
         .max(100, "Name must be at most 100 characters")
@@ -33,7 +35,8 @@ export const updateMemberSchema = z.object({
         .min(10, "Mobile number must be at least 10 digits")
         .max(15, "Mobile number must be at most 15 digits")
         .regex(/^[0-9]+$/, "Mobile number must contain only digits")
-        .optional(),
+        .optional()
+        .or(z.literal('')),
     name: z
         .string()
         .max(100, "Name must be at most 100 characters")
