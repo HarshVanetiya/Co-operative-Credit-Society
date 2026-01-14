@@ -184,3 +184,55 @@ export const getExpectedCollections = async (req, res) => {
         res.status(500).json({ error: "Failed to calculate expected collections" });
     }
 };
+
+// Get detailed member status report
+export const getMemberStatus = async (req, res) => {
+    try {
+        const STANDARD_FEE = 520; // 500 Basic + 20 Dev Fee
+
+        const members = await prisma.member.findMany({
+            include: {
+                account: true,
+                loans: {
+                    where: { status: 'ACTIVE' }
+                }
+            },
+            orderBy: { name: 'asc' }
+        });
+
+        const statusList = members.map(member => {
+            const hasActiveLoan = member.loans.length > 0;
+            let remainingPrincipal = 0;
+            let loanExpectation = 0;
+
+            if (hasActiveLoan) {
+                const loan = member.loans[0]; 
+                remainingPrincipal = loan.remainingBalance;
+                
+                const interest = loan.remainingBalance * loan.interestRate;
+                // emiAmount in DB is the principal component (Principal / Months)
+                const principalComponent = Math.min(loan.emiAmount, loan.remainingBalance);
+                
+                loanExpectation = interest + principalComponent;
+            }
+
+            return {
+                memberId: member.id,
+                name: member.name,
+                fathersName: member.fathersName || 'N/A', // Added Fathers Name
+                accountNumber: member.account?.accountNumber || 'N/A',
+                remainingLoanPrincipal: remainingPrincipal,
+                expectedAmount: STANDARD_FEE + loanExpectation
+            };
+        });
+
+        res.status(200).json({
+            count: members.length,
+            rows: statusList
+        });
+
+    } catch (error) {
+        console.error("Error fetching member status:", error);
+        res.status(500).json({ error: "Failed to fetch member status" });
+    }
+};

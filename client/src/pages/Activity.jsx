@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import api from '../lib/api';
-import { FileText, Download, Calendar, Loader } from 'lucide-react';
+import { FileText, Download, Calendar, Loader, Users } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 const Activity = () => {
-    const [activeTab, setActiveTab] = useState('report'); // 'report' or 'expected'
+    const [activeTab, setActiveTab] = useState('report'); // 'report', 'expected', or 'status'
     const [loading, setLoading] = useState(false);
     
     // Date Selection State
@@ -21,11 +21,16 @@ const Activity = () => {
     const [expectedData, setExpectedData] = useState([]);
     const [expectedSummary, setExpectedSummary] = useState({ totalExpected: 0, memberCount: 0 });
 
+    // Status Data State
+    const [statusRows, setStatusRows] = useState([]);
+
     useEffect(() => {
         if (activeTab === 'report') {
             fetchActivityReport();
-        } else {
+        } else if (activeTab === 'expected') {
             fetchExpectedCollections();
+        } else {
+            fetchMemberStatus();
         }
     }, [activeTab, selectedMonth, selectedYear]);
 
@@ -55,6 +60,19 @@ const Activity = () => {
         } catch (error) {
             console.error("Error fetching expected collections:", error);
             setExpectedData([]);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchMemberStatus = async () => {
+        setLoading(true);
+        try {
+            const res = await api.get('/report/status');
+            setStatusRows(res.data.rows || []);
+        } catch (error) {
+            console.error("Error fetching member status:", error);
+            setStatusRows([]);
         } finally {
             setLoading(false);
         }
@@ -93,7 +111,7 @@ const Activity = () => {
                     headStyles: { fillColor: [79, 70, 229] } // Indigo 600
                 });
                 doc.save(`Activity_Report_${selectedYear}_${selectedMonth}.pdf`);
-            } else {
+            } else if (activeTab === 'expected') {
                 // Expected Collections PDF
                 doc.setFontSize(18);
                 doc.text(`Expected Collections Report`, 14, 20);
@@ -120,6 +138,35 @@ const Activity = () => {
                     headStyles: { fillColor: [79, 70, 229] }
                 });
                 doc.save(`Expected_Collections_${new Date().toISOString().slice(0, 10)}.pdf`);
+            } else {
+                // Member Status PDF
+                doc.setFontSize(18);
+                doc.text(`Member Status Report`, 14, 20);
+                
+                doc.setFontSize(12);
+                doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
+                doc.text(`Total Members: ${statusRows.length}`, 14, 40);
+
+                const tableColumn = ["Account", "Name", "Father's Name", "Loan Bal", "Expected Amt", "Member Sig.", "Office Sig."];
+                const tableRows = statusRows.map(item => [
+                    item.accountNumber,
+                    item.name,
+                    item.fathersName,
+                    item.remainingLoanPrincipal > 0 ? formatCurrency(item.remainingLoanPrincipal) : "0",
+                    formatCurrency(item.expectedAmount),
+                    "", // Blank for Signature
+                    ""  // Blank for Remarks
+                ]);
+
+                autoTable(doc, {
+                    head: [tableColumn],
+                    body: tableRows,
+                    startY: 50,
+                    theme: 'grid',
+                    styles: { fontSize: 9 },
+                    headStyles: { fillColor: [79, 70, 229] }
+                });
+                doc.save(`Member_Status_${new Date().toISOString().slice(0, 10)}.pdf`);
             }
         } catch (error) {
             console.error("PDF Generation Error:", error);
@@ -164,9 +211,16 @@ const Activity = () => {
                 >
                     <Calendar size={18} /> Expected Collections
                 </button>
+                <button 
+                    className={`btn ${activeTab === 'status' ? 'btn-primary' : 'btn-secondary'}`}
+                    onClick={() => setActiveTab('status')}
+                    style={{ flex: 1 }}
+                >
+                    <Users size={18} /> Member Status
+                </button>
             </div>
 
-            {activeTab === 'report' ? (
+            {activeTab === 'report' && (
                 <div className="card">
                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
                         <div style={{ display: 'flex', gap: '1rem' }}>
@@ -257,7 +311,9 @@ const Activity = () => {
                         </div>
                     )}
                 </div>
-            ) : (
+            )}
+            
+            {activeTab === 'expected' && (
                 <div className="card">
                      <div className="page-header" style={{ marginBottom: '1.5rem' }}>
                         <h2 className="title" style={{ fontSize: '1.25rem' }}>Next Month Forecast</h2>
@@ -305,6 +361,61 @@ const Activity = () => {
                                                 )}
                                             </td>
                                             <td style={{fontWeight: 700}}>{formatCurrency(item.totalExpected)}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
+            )}
+            {activeTab === 'status' && (
+                <div className="card">
+                    <div className="page-header" style={{ marginBottom: '1.5rem' }}>
+                        <h2 className="title" style={{ fontSize: '1.25rem' }}>Member Status Details</h2>
+                         <div className="stat-card-filled" style={{ padding: '0.75rem 1.5rem', background: '#e0e7ff', borderColor: '#c7d2fe' }}>
+                            <div className="stat-info">
+                                <span className="stat-label" style={{ color: '#4338ca' }}>Total Members</span>
+                                <span className="stat-value" style={{ color: '#4338ca' }}>{statusRows.length}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {loading ? (
+                         <div className="empty-state">
+                            <Loader className="animate-spin" style={{ margin: '0 auto', marginBottom: '1rem' }} />
+                            Fetching status...
+                        </div>
+                    ) : (
+                        <div className="table-container">
+                            <table className="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Acc No.</th>
+                                        <th>Name</th>
+                                        <th>Father's Name</th>
+                                        <th>Loan Bal</th>
+                                        <th>Expected Amt</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {statusRows.map(item => (
+                                        <tr key={item.memberId}>
+                                            <td className="mobile-text">{item.accountNumber}</td>
+                                            <td>
+                                                <div style={{display:'flex', flexDirection:'column'}}>
+                                                    <span style={{fontWeight: 500}}>{item.name}</span>
+                                                </div>
+                                            </td>
+                                            <td>{item.fathersName}</td>
+                                            <td>
+                                                 {item.remainingLoanPrincipal > 0 ? (
+                                                    <span style={{color: '#ea580c', fontWeight: 500}}>{formatCurrency(item.remainingLoanPrincipal)}</span>
+                                                 ) : (
+                                                    <span style={{color: '#9ca3af'}}>0</span>
+                                                 )}
+                                            </td>
+                                            <td style={{fontWeight: 700}}>{formatCurrency(item.expectedAmount)}</td>
                                         </tr>
                                     ))}
                                 </tbody>
