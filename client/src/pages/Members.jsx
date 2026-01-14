@@ -15,6 +15,23 @@ const Members = () => {
     fetchMembers();
   }, []);
 
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Don't trigger if user is typing in an input
+      if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
+        return;
+      }
+
+      if (e.code === 'Space' || e.key === ' ') {
+        e.preventDefault(); // Prevent page scroll
+        setIsModalOpen(true);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   const fetchMembers = async () => {
     try {
       const res = await api.get('/member/list');
@@ -29,17 +46,17 @@ const Members = () => {
     }
   };
 
-  const filteredMembers = members.filter(member => 
+  const filteredMembers = members.filter(member =>
     member.name?.toLowerCase().includes(search.toLowerCase()) ||
     member.mobile?.includes(search)
   );
 
   return (
     <div className="dashboard-container">
-      <AddMemberModal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-        onSuccess={fetchMembers} 
+      <AddMemberModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSuccess={fetchMembers}
       />
       <div className="page-header">
         <div>
@@ -55,51 +72,53 @@ const Members = () => {
       {/* Filters */}
       <div className="search-container">
         <Search className="search-icon" size={20} />
-        <input 
-            type="text" 
-            placeholder="Search members by name or mobile..." 
-            className="input search-input"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+        <input
+          type="text"
+          placeholder="Search members by name or mobile..."
+          className="input search-input"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
         />
       </div>
 
       {/* List */}
       <div className="table-container">
         {loading ? (
-            <div className="empty-state">Loading members...</div>
+          <div className="empty-state">Loading members...</div>
         ) : filteredMembers.length === 0 ? (
-            <div className="empty-state">No members found.</div>
+          <div className="empty-state">No members found.</div>
         ) : (
-            <table className="members-table">
+          <table className="members-table">
             <thead>
-                <tr>
+              <tr>
                 <th>Name</th>
                 <th>Account No.</th>
-                <th>Mobile</th>
+                <th>Total Amount</th>
                 <th>Address</th>
-                <th style={{textAlign: 'right'}}>Action</th>
-                </tr>
+                <th style={{ textAlign: 'right' }}>Action</th>
+              </tr>
             </thead>
             <tbody>
-                {filteredMembers.map(member => (
-                <tr 
-                    key={member.id} 
-                    onClick={() => navigate(`/members/${member.id}`)}
+              {filteredMembers.map(member => (
+                <tr
+                  key={member.id}
+                  onClick={() => navigate(`/members/${member.id}`)}
                 >
-                    <td style={{fontWeight: 500}}>{member.name || 'N/A'}</td>
-                    <td className="mobile-text">{member.account?.accountNumber || 'N/A'}</td>
-                    <td className="mobile-text">{member.mobile}</td>
-                    <td>
-                        <div className="address-text">{member.address || 'N/A'}</div>
-                    </td>
-                    <td style={{textAlign: 'right'}}>
-                        <ChevronRight size={20} style={{color: 'var(--text-muted)'}} />
-                    </td>
+                  <td style={{ fontWeight: 500 }}>{member.name || 'N/A'}</td>
+                  <td className="mobile-text">{member.account?.accountNumber || 'N/A'}</td>
+                  <td style={{ fontWeight: 500, color: 'var(--text-primary)' }}>
+                    {`₹ ${(member.account?.totalAmount || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`}
+                  </td>
+                  <td>
+                    <div className="address-text">{member.address || 'N/A'}</div>
+                  </td>
+                  <td style={{ textAlign: 'right' }}>
+                    <ChevronRight size={20} style={{ color: 'var(--text-muted)' }} />
+                  </td>
                 </tr>
-                ))}
+              ))}
             </tbody>
-            </table>
+          </table>
         )}
       </div>
     </div>

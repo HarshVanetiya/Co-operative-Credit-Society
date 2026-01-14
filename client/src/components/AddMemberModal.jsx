@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import api from '../lib/api';
 import Modal from './Modal';
 
 const AddMemberModal = ({ isOpen, onClose, onSuccess }) => {
+  const nameInputRef = useRef(null);
   const [formData, setFormData] = useState({
     name: 'mr.',
     fathersName: 'mr.',
@@ -14,6 +15,15 @@ const AddMemberModal = ({ isOpen, onClose, onSuccess }) => {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (isOpen && nameInputRef.current) {
+      // Correcting: using setTimeout to ensure modal is rendered and attached
+      setTimeout(() => {
+        nameInputRef.current?.focus();
+      }, 100);
+    }
+  }, [isOpen]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -69,6 +79,7 @@ const AddMemberModal = ({ isOpen, onClose, onSuccess }) => {
         <div className="form-group">
           <label className="label">Full Name</label>
           <input
+            ref={nameInputRef}
             type="text"
             name="name"
             value={formData.name}
