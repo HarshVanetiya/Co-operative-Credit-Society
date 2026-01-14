@@ -17,16 +17,16 @@ const AddMemberModal = ({ isOpen, onClose, onSuccess }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    
+
     // For number fields, validate input
     if (['initialAmount', 'developmentFee'].includes(name)) {
       if (value === '' || /^\d*\.?\d*$/.test(value)) {
         setFormData((prev) => ({ ...prev, [name]: value }));
       }
     } else if (['name', 'fathersName'].includes(name)) {
-        // Capitalize first letter of each word
-        const capitalizedValue = value.replace(/\b\w/g, (char) => char.toUpperCase());
-        setFormData((prev) => ({ ...prev, [name]: capitalizedValue }));
+      // Capitalize first letter of each word
+      const capitalizedValue = value.replace(/\b\w/g, (char) => char.toUpperCase());
+      setFormData((prev) => ({ ...prev, [name]: capitalizedValue }));
     } else {
       setFormData((prev) => ({ ...prev, [name]: value }));
     }
@@ -43,13 +43,13 @@ const AddMemberModal = ({ isOpen, onClose, onSuccess }) => {
         initialAmount: parseFloat(formData.initialAmount) || 0,
         developmentFee: parseFloat(formData.developmentFee) || 0,
       });
-      setFormData({ 
-        name: '', 
-        fathersName: '', 
-        mobile: '', 
+      setFormData({
+        name: 'mr.',
+        fathersName: 'mr.',
+        mobile: '',
         address: '',
         accountNumber: '',
-        initialAmount: '',
+        initialAmount: '151365',
         developmentFee: '',
       });
       onSuccess();
@@ -91,29 +91,29 @@ const AddMemberModal = ({ isOpen, onClose, onSuccess }) => {
         </div>
 
         <div className="form-row">
-            <div className="form-group">
+          <div className="form-group">
             <label className="label">Mobile Number</label>
             <input
-                type="text"
-                name="mobile"
-                value={formData.mobile}
-                onChange={handleChange}
-                className="input"
-                placeholder="Enter mobile number"
+              type="text"
+              name="mobile"
+              value={formData.mobile}
+              onChange={handleChange}
+              className="input"
+              placeholder="Enter mobile number"
             />
-            </div>
-            <div className="form-group">
+          </div>
+          <div className="form-group">
             <label className="label">Account Number *</label>
             <input
-                type="text"
-                name="accountNumber"
-                value={formData.accountNumber}
-                onChange={handleChange}
-                className="input"
-                placeholder="Unique Account No."
-                required
+              type="text"
+              name="accountNumber"
+              value={formData.accountNumber}
+              onChange={handleChange}
+              className="input"
+              placeholder="Unique Account No."
+              required
             />
-            </div>
+          </div>
         </div>
 
         <div className="form-group">
