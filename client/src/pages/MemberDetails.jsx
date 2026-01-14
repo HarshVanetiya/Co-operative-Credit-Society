@@ -77,7 +77,12 @@ const MemberDetails = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setMember(prev => ({ ...prev, [name]: value }));
+    if (['name', 'fathersName'].includes(name)) {
+        const capitalizedValue = value.replace(/\b\w/g, (char) => char.toUpperCase());
+        setMember(prev => ({ ...prev, [name]: capitalizedValue }));
+    } else {
+        setMember(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleSubmit = async (e) => {

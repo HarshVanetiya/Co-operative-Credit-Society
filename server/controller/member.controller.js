@@ -8,7 +8,13 @@ const generateAccountNumber = () => {
 };
 
 export const createMember = async (req, res) => {
-    const { name, mobile, address, fathersName, initialAmount, developmentFee, accountNumber } = req.body;
+    let { name, mobile, address, fathersName, initialAmount, developmentFee, accountNumber } = req.body;
+    
+    // Capitalize name and father's name
+    const capitalize = (str) => str ? str.replace(/\b\w/g, char => char.toUpperCase()) : str;
+    name = capitalize(name);
+    fathersName = capitalize(fathersName);
+
     try {
         const accountBalance = parseFloat(initialAmount) || 0;
         const devFee = parseFloat(developmentFee) || 0;
@@ -99,9 +105,15 @@ export const getAllMember = async (req, res) => {
 
 export const updateMember = async (req, res) => {
     const { id } = req.params;
-    const { name, mobile, address, fathersName } = req.body;
+    let { name, mobile, address, fathersName } = req.body;
     console.log('Update request body:', req.body);
     console.log('Extracted fathersName:', fathersName);
+    
+    // Capitalize name and father's name
+    const capitalize = (str) => str ? str.replace(/\b\w/g, char => char.toUpperCase()) : str;
+    name = capitalize(name);
+    fathersName = capitalize(fathersName);
+
     try {
         const updatedMember = await prisma.member.update({
             where: { id: parseInt(id) },

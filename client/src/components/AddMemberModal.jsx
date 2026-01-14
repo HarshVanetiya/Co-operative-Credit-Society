@@ -4,8 +4,8 @@ import Modal from './Modal';
 
 const AddMemberModal = ({ isOpen, onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
-    name: '',
-    fathersName: '',
+    name: 'mr.',
+    fathersName: 'mr.',
     mobile: '',
     address: '',
     accountNumber: '',
@@ -23,6 +23,10 @@ const AddMemberModal = ({ isOpen, onClose, onSuccess }) => {
       if (value === '' || /^\d*\.?\d*$/.test(value)) {
         setFormData((prev) => ({ ...prev, [name]: value }));
       }
+    } else if (['name', 'fathersName'].includes(name)) {
+        // Capitalize first letter of each word
+        const capitalizedValue = value.replace(/\b\w/g, (char) => char.toUpperCase());
+        setFormData((prev) => ({ ...prev, [name]: capitalizedValue }));
     } else {
       setFormData((prev) => ({ ...prev, [name]: value }));
     }
