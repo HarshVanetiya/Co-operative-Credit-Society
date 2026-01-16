@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../lib/api';
-import { Plus, Loader, CircleDollarSign, CheckCircle, Clock, Filter, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Loader, CircleDollarSign, CheckCircle, Clock, Filter, X, ChevronLeft, ChevronRight, ChevronDown, Search } from 'lucide-react';
 import LoanModal from '../components/LoanModal';
 
 const Loans = () => {
@@ -16,6 +16,37 @@ const Loans = () => {
   const [isLoanModalOpen, setIsLoanModalOpen] = useState(false);
   const [loanableAmount, setLoanableAmount] = useState(0);
 
+  // Search/Dropdown states
+  const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchToken, setDebouncedSearchToken] = useState('');
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [selectedMemberName, setSelectedMemberName] = useState('');
+  const [loadingMembers, setLoadingMembers] = useState(false);
+
+  // Debounce search term
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchToken(searchTerm);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // Fetch members when search token changes
+  useEffect(() => {
+    fetchMembers(debouncedSearchToken);
+  }, [debouncedSearchToken]);
+
+  // Sync selectedMemberName if memberFilter is preset (e.g. from URL)
+  useEffect(() => {
+    if (memberFilter && members.length > 0) {
+      const m = members.find(m => m.id === parseInt(memberFilter));
+      if (m) {
+        setSelectedMemberName(m.name);
+        setSearchTerm(m.name);
+      }
+    }
+  }, [memberFilter, members]);
+
   useEffect(() => {
     fetchLoans(1);
     fetchLoanableAmount();
@@ -28,7 +59,7 @@ const Loans = () => {
       const params = new URLSearchParams();
       params.append('page', page);
       params.append('limit', 20);
-      
+
       if (filter !== 'ALL') {
         params.append('status', filter);
       }
@@ -55,18 +86,40 @@ const Loans = () => {
     }
   };
 
-  const fetchMembers = async () => {
+  const fetchMembers = async (search = '') => {
+    setLoadingMembers(true);
     try {
-      const res = await api.get('/member/list');
+      const res = await api.get(`/member/list?search=${search}`);
       setMembers(res.data);
     } catch (error) {
       console.error('Error fetching members:', error);
+    } finally {
+      setLoadingMembers(false);
     }
   };
 
   const handleLoanSuccess = () => {
-    fetchLoans(1);
+    fetchLoans(pagination.page);
     fetchLoanableAmount();
+  };
+
+  const handleSearchChange = (e) => {
+    const value = e.target.value;
+    setSearchTerm(value);
+    setSelectedMemberName(value);
+    setShowDropdown(true);
+    if (value === '') {
+      setMemberFilter('');
+      setSearchParams({});
+    }
+  };
+
+  const selectMember = (member) => {
+    setMemberFilter(member.id.toString());
+    setSearchParams({ memberId: member.id });
+    setSelectedMemberName(member.name);
+    setSearchTerm(member.name);
+    setShowDropdown(false);
   };
 
   const handleMemberFilterChange = (e) => {
@@ -82,6 +135,9 @@ const Loans = () => {
   const clearMemberFilter = () => {
     setMemberFilter('');
     setSearchParams({});
+    setSearchTerm('');
+    setSelectedMemberName('');
+    fetchMembers('');
   };
 
   const goToPage = (page) => {
@@ -140,25 +196,81 @@ const Loans = () => {
 
       {/* Member Filter */}
       <div className="member-filter-section">
-        <div className="filter-row">
-          <Filter size={18} />
-          <select
-            value={memberFilter}
-            onChange={handleMemberFilterChange}
-            className="input member-filter-select"
-          >
-            <option value="">All Members</option>
-            {members.map((member) => (
-              <option key={member.id} value={member.id}>
-                {member.name} ({member.mobile})
-              </option>
-            ))}
-          </select>
-          {memberFilter && (
-            <button className="btn btn-small btn-secondary" onClick={clearMemberFilter}>
-              <X size={16} />
-              Clear
-            </button>
+        <div className="filter-row" style={{ position: 'relative', width: '100%', maxWidth: '400px' }}>
+          <div className="search-input-wrapper" style={{ position: 'relative', flex: 1 }}>
+            <div style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }}>
+              <Search size={16} />
+            </div>
+            <input
+              type="text"
+              placeholder="Search member..."
+              value={selectedMemberName}
+              onChange={handleSearchChange}
+              onFocus={() => setShowDropdown(true)}
+              className="input"
+              style={{ paddingLeft: '32px' }}
+              autoComplete="off"
+            />
+            <div style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', cursor: 'pointer' }}>
+              {loadingMembers ? <Loader size={16} className="animate-spin" /> :
+                selectedMemberName ? <X size={16} onClick={clearMemberFilter} /> : <ChevronDown size={16} />}
+            </div>
+          </div>
+
+          {showDropdown && (
+            <div className="dropdown-list" style={{
+              position: 'absolute',
+              top: '100%',
+              left: 0,
+              right: 0,
+              maxHeight: '300px',
+              overflowY: 'auto',
+              background: 'var(--surface)',
+              border: '1px solid var(--border)',
+              borderRadius: '0.375rem',
+              marginTop: '4px',
+              zIndex: 50,
+              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+            }}>
+              {loadingMembers ? (
+                <div style={{ padding: '0.75rem', color: 'var(--text-muted)', textAlign: 'center' }}>Searching...</div>
+              ) : members.length === 0 ? (
+                <div style={{ padding: '0.75rem', color: 'var(--text-muted)' }}>
+                  No members found.
+                </div>
+              ) : (
+                members.map((member) => (
+                  <div
+                    key={member.id}
+                    onClick={() => selectMember(member)}
+                    style={{
+                      padding: '0.75rem 1rem',
+                      cursor: 'pointer',
+                      borderBottom: '1px solid var(--border)',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center'
+                    }}
+                    className="dropdown-item"
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--background)'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                  >
+                    <div>
+                      <div style={{ fontWeight: 500 }}>{member.name}</div>
+                      <div style={{ fontSize: '0.75em', color: 'var(--text-muted)' }}>{member.mobile}</div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+
+          {/* Overlay to close dropdown when clicking outside */}
+          {showDropdown && (
+            <div
+              style={{ position: 'fixed', inset: 0, zIndex: 40 }}
+              onClick={() => setShowDropdown(false)}
+            />
           )}
         </div>
         {selectedMember && (
@@ -259,7 +371,7 @@ const Loans = () => {
                   Showing {((pagination.page - 1) * pagination.limit) + 1} - {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total}
                 </div>
                 <div className="pagination-buttons">
-                  <button 
+                  <button
                     className="btn btn-small btn-secondary"
                     onClick={() => goToPage(pagination.page - 1)}
                     disabled={pagination.page === 1}
@@ -270,7 +382,7 @@ const Loans = () => {
                   <span className="page-indicator">
                     Page {pagination.page} of {pagination.totalPages}
                   </span>
-                  <button 
+                  <button
                     className="btn btn-small btn-secondary"
                     onClick={() => goToPage(pagination.page + 1)}
                     disabled={pagination.page === pagination.totalPages}

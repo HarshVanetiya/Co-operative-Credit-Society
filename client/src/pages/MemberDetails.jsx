@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../lib/api';
-import { ArrowLeft, Save, Loader, Wallet, Receipt, CircleDollarSign, Clock, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Save, Loader, Wallet, Receipt, CircleDollarSign, Clock, CheckCircle, Trash2 } from 'lucide-react';
 import DepositModal from '../components/DepositModal';
 import ReceiptModal from '../components/ReceiptModal';
 
@@ -31,7 +31,7 @@ const MemberDetails = () => {
     try {
       const res = await api.get(`/member/get/${id}`);
       if (res.data) {
-          setMember(res.data);
+        setMember(res.data);
       }
     } catch (error) {
       console.error('Error fetching member', error);
@@ -75,13 +75,31 @@ const MemberDetails = () => {
     fetchTransactions();
   };
 
+
+
+  const deleteTransaction = async (transactionId) => {
+    if (!window.confirm("Are you sure you want to delete this transaction? This action will revert all financial changes.")) {
+      return;
+    }
+
+    try {
+      await api.delete(`/transaction/${transactionId}`);
+      // Refresh list
+      fetchTransactions();
+      fetchMember(); // Balance changed
+    } catch (error) {
+      console.error('Error deleting transaction:', error);
+      alert("Failed to delete transaction");
+    }
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     if (['name', 'fathersName'].includes(name)) {
-        const capitalizedValue = value.replace(/\b\w/g, (char) => char.toUpperCase());
-        setMember(prev => ({ ...prev, [name]: capitalizedValue }));
+      const capitalizedValue = value.replace(/\b\w/g, (char) => char.toUpperCase());
+      setMember(prev => ({ ...prev, [name]: capitalizedValue }));
     } else {
-        setMember(prev => ({ ...prev, [name]: value }));
+      setMember(prev => ({ ...prev, [name]: value }));
     }
   };
 
@@ -117,11 +135,11 @@ const MemberDetails = () => {
   };
 
   if (loading) return <div className="empty-state">Loading...</div>;
-  if (error) return <div className="empty-state" style={{color: 'var(--danger)'}}>{error}</div>;
+  if (error) return <div className="empty-state" style={{ color: 'var(--danger)' }}>{error}</div>;
 
   return (
     <div className="details-container">
-      <button 
+      <button
         onClick={() => navigate('/members')}
         className="back-link"
       >
@@ -132,7 +150,7 @@ const MemberDetails = () => {
       <div className="details-header">
         <h1 className="page-title">Member Details</h1>
         <div className="id-badge">
-            ID: {id}
+          ID: {id}
         </div>
       </div>
 
@@ -160,7 +178,7 @@ const MemberDetails = () => {
                 className="input"
               />
             </div>
-            
+
             <div className="form-group">
               <label className="label">Mobile Number</label>
               <input
@@ -211,9 +229,9 @@ const MemberDetails = () => {
           )}
 
           <div className="form-actions">
-            <button 
-              type="button" 
-              className="btn btn-secondary" 
+            <button
+              type="button"
+              className="btn btn-secondary"
               onClick={() => setIsDepositModalOpen(true)}
             >
               <Wallet size={20} />
@@ -235,24 +253,24 @@ const MemberDetails = () => {
             Transaction History
           </h3>
           <div style={{ display: 'flex', gap: '8px' }}>
-            <button 
-                className="btn btn-small btn-primary"
-                onClick={() => setIsReceiptModalOpen(true)}
-                style={{ fontSize: '0.8rem', padding: '0.25rem 0.75rem' }}
+            <button
+              className="btn btn-small btn-primary"
+              onClick={() => setIsReceiptModalOpen(true)}
+              style={{ fontSize: '0.8rem', padding: '0.25rem 0.75rem' }}
             >
-                Generate Receipt
+              Generate Receipt
             </button>
             {hasMoreTransactions && (
-                <button 
+              <button
                 className="btn btn-small btn-secondary"
                 onClick={() => navigate(`/history?mobile=${member.mobile}`)}
-                >
+              >
                 View All →
-                </button>
+              </button>
             )}
           </div>
         </div>
-        
+
         {loadingTransactions ? (
           <div className="empty-state">
             <Loader size={20} className="animate-spin" />
@@ -270,6 +288,7 @@ const MemberDetails = () => {
                   <th>Dev Fee</th>
                   <th>Penalty</th>
                   <th>Total</th>
+                  <th>Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -281,7 +300,18 @@ const MemberDetails = () => {
                       <td>{formatCurrency(tx.basicPay)}</td>
                       <td>{formatCurrency(tx.developmentFee)}</td>
                       <td>{formatCurrency(tx.penalty)}</td>
+
                       <td className="font-bold">{formatCurrency(total)}</td>
+                      <td>
+                        <button
+                          className="btn-icon danger"
+                          onClick={() => deleteTransaction(tx.id)}
+                          title="Delete Transaction"
+                          style={{ padding: '4px', color: 'red' }}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </td>
                     </tr>
                   );
                 })}
@@ -299,7 +329,7 @@ const MemberDetails = () => {
             Loan History
           </h3>
           {hasMoreLoans && (
-            <button 
+            <button
               className="btn btn-small btn-secondary"
               onClick={() => navigate(`/loans?memberId=${id}`)}
             >
@@ -307,7 +337,7 @@ const MemberDetails = () => {
             </button>
           )}
         </div>
-        
+
         {loadingLoans ? (
           <div className="empty-state">
             <Loader size={20} className="animate-spin" />
@@ -349,7 +379,7 @@ const MemberDetails = () => {
                       )}
                     </td>
                     <td>
-                      <button 
+                      <button
                         className="btn btn-small btn-secondary"
                         onClick={() => navigate(`/loans/${loan.id}`)}
                       >

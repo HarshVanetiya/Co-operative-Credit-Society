@@ -175,3 +175,50 @@ export const getMemberTransactions = async (req, res) => {
         res.status(500).json({ error: "Failed to fetch member transactions" });
     }
 };
+// Delete a transaction and revert balances
+export const deleteTransaction = async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const transactionId = parseInt(id);
+
+        // Find the transaction first
+        const transaction = await prisma.transactionLog.findUnique({
+            where: { id: transactionId }
+        });
+
+        if (!transaction) {
+            return res.status(404).json({ error: "Transaction not found" });
+        }
+
+        // Use Prisma transaction to ensure atomicity
+        await prisma.$transaction(async (tx) => {
+            // Revert account total amount (subtract basicPay)
+            await tx.account.update({
+                where: { id: transaction.accountId },
+                data: {
+                    totalAmount: { decrement: transaction.basicPay }
+                }
+            });
+
+            // Revert organisation amount and penalty
+            await tx.organisation.update({
+                where: { id: 1 },
+                data: {
+                    amount: { decrement: transaction.developmentFee },
+                    penalty: { decrement: transaction.penalty }
+                }
+            });
+
+            // Delete the transaction log
+            await tx.transactionLog.delete({
+                where: { id: transactionId }
+            });
+        });
+
+        res.status(200).json({ message: "Transaction deleted successfully" });
+    } catch (error) {
+        console.error("Error deleting transaction:", error);
+        res.status(500).json({ error: "Failed to delete transaction" });
+    }
+};

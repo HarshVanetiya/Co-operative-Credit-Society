@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../lib/api';
-import { ArrowLeft, Loader, CircleDollarSign, Receipt, Wallet, CheckCircle, Clock } from 'lucide-react';
+import { ArrowLeft, Loader, CircleDollarSign, Receipt, Wallet, CheckCircle, Clock, Trash2 } from 'lucide-react';
 import LoanPaymentModal from '../components/LoanPaymentModal';
 
 const LoanDetails = () => {
@@ -26,6 +26,19 @@ const LoanDetails = () => {
       setError('Could not load loan details.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const deleteLoanPayment = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this payment? This action will revert loan balance and organization profits.")) {
+      return;
+    }
+    try {
+      await api.delete(`/loan/payment/${id}`);
+      fetchLoan();
+    } catch (error) {
+      console.error('Error deleting payment:', error);
+      alert("Failed to delete payment");
     }
   };
 
@@ -165,6 +178,7 @@ const LoanDetails = () => {
                   <th>Penalty</th>
                   <th>Total Paid</th>
                   <th>Remaining After</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -179,6 +193,15 @@ const LoanDetails = () => {
                     <td>{formatCurrency(payment.penalty)}</td>
                     <td className="font-bold">{formatCurrency(payment.totalPaid)}</td>
                     <td>{formatCurrency(payment.remainingAfter)}</td>
+                    <td>
+                      <button
+                        className="btn-icon danger"
+                        onClick={() => deleteLoanPayment(payment.id)}
+                        title="Delete Payment"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>

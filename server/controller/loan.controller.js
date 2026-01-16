@@ -377,3 +377,66 @@ export const getMemberLoanPayments = async (req, res) => {
         res.status(500).json({ error: "Failed to fetch loan payments" });
     }
 };
+// Delete a loan payment and revert balances
+export const deleteLoanPayment = async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const paymentId = parseInt(id);
+
+        // Find the payment first
+        const payment = await prisma.loanPayment.findUnique({
+            where: { id: paymentId },
+            include: { loan: true }
+        });
+
+        if (!payment) {
+            return res.status(404).json({ error: "Loan payment not found" });
+        }
+
+        const { loan } = payment;
+
+        // Use Prisma transaction to ensure atomicity
+        await prisma.$transaction(async (tx) => {
+            
+            // Revert organisation profit and penalty
+            // Interest paid went to profit, penalty went to penalty
+            await tx.organisation.update({
+                where: { id: 1 },
+                data: {
+                    profit: { decrement: payment.interestPaid },
+                    penalty: { decrement: payment.penalty }
+                }
+            });
+
+            // Revert loan status and amounts
+            // We need to add back the principal that was paid
+            const newRemainingBalance = loan.remainingBalance + payment.principalPaid;
+            
+            // Revert total interest paid
+            // Revert status if it was completed
+            // If loan is currently COMPLETED, and we revert a payment, it likely becomes ACTIVE again.
+            // If it was ACTIVE, it stays ACTIVE.
+            
+            await tx.loan.update({
+                where: { id: loan.id },
+                data: {
+                    remainingBalance: newRemainingBalance,
+                    totalInterestPaid: { decrement: payment.interestPaid },
+                    status: "ACTIVE", // Always revert to ACTIVE if we are deleting a payment that might have closed it
+                    completedAt: null // Clear completion date
+                }
+            });
+
+            // Delete the loan payment record
+            await tx.loanPayment.delete({
+                where: { id: paymentId }
+            });
+        });
+
+        res.status(200).json({ message: "Loan payment deleted successfully" });
+    } catch (error) {
+        console.error("Error deleting loan payment:", error);
+        res.status(500).json({ error: "Failed to delete loan payment" });
+    }
+};

@@ -23,7 +23,7 @@ const DepositModal = ({ isOpen, onClose, member, onSuccess }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     const basicPay = parseFloat(formData.basicAmount) || 0;
     const developmentFee = parseFloat(formData.developmentFee) || 0;
     const penalty = parseFloat(formData.penalty) || 0;
@@ -47,11 +47,11 @@ const DepositModal = ({ isOpen, onClose, member, onSuccess }) => {
       });
 
       alert('Transaction recorded successfully!');
-      
+
       // Reset form and close modal
       setFormData({ basicAmount: '', developmentFee: '', penalty: '' });
       onClose();
-      
+
       // Callback to refresh member data
       if (onSuccess) {
         onSuccess();
@@ -65,7 +65,7 @@ const DepositModal = ({ isOpen, onClose, member, onSuccess }) => {
   };
 
   const handleClose = () => {
-    setFormData({ basicAmount: '', developmentFee: '', penalty: '' });
+    setFormData({ basicAmount: '500', developmentFee: '20', penalty: '' });
     setError('');
     onClose();
   };
@@ -74,7 +74,7 @@ const DepositModal = ({ isOpen, onClose, member, onSuccess }) => {
     <Modal isOpen={isOpen} onClose={handleClose} title="Deposit Money">
       <form onSubmit={handleSubmit} className="login-form">
         {error && <div className="error-message">{error}</div>}
-        
+
         <div className="form-group">
           <label className="label">Basic Amount (₹)</label>
           <input

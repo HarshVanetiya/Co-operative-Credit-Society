@@ -91,10 +91,32 @@ export const getMember = async (req, res) => {
 };
 
 export const getAllMember = async (req, res) => {
+    const { search, excludeActiveLoans } = req.query;
+
     try {
+        const where = {};
+        
+        if (search) {
+            where.OR = [
+                { name: { contains: search, mode: 'insensitive' } },
+                { mobile: { contains: search } },
+                { account: { accountNumber: { contains: search } } }
+            ];
+        }
+
+        if (excludeActiveLoans === 'true') {
+            where.loans = {
+                none: {
+                    status: 'ACTIVE'
+                }
+            };
+        }
+
         const members = await prisma.member.findMany({
+            where,
             orderBy: { createdAt: 'desc' },
-            include: { account: true }
+            include: { account: true },
+            take: 50 // Limit results for performance
         });
         res.status(200).json(members);
     } catch (error) {

@@ -6,7 +6,8 @@ import {
     getAllLoans, 
     payLoanEmi, 
     getLoanableAmount,
-    getMemberLoanPayments
+    getMemberLoanPayments,
+    deleteLoanPayment
 } from "../controller/loan.controller.js";
 
 const router = Router();
@@ -18,6 +19,7 @@ router.get("/member/:memberId", getMemberLoans);
 router.get("/payments/member/:memberId", getMemberLoanPayments);
 router.get("/all", getAllLoans);
 router.post("/pay/:id", payLoanEmi);
+router.delete("/payment/:id", deleteLoanPayment);
 router.get("/available", getLoanableAmount);
 
 export default router;

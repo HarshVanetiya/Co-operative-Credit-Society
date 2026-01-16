@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import api from '../lib/api';
-import { Search, Filter, X, Loader, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Filter, X, Loader, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
 
 const History = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -35,7 +35,7 @@ const History = () => {
       });
       params.append('page', page);
       params.append('limit', 20);
-      
+
       const res = await api.get(`/transaction/list?${params}`);
       setTransactions(res.data.data);
       setPagination(res.data.pagination);
@@ -43,6 +43,21 @@ const History = () => {
       console.error('Error fetching transactions:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const deleteTransaction = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this transaction? This action will revert all financial changes.")) {
+      return;
+    }
+
+    try {
+      await api.delete(`/transaction/${id}`);
+      // Refresh list
+      fetchTransactions(filters, pagination.page);
+    } catch (error) {
+      console.error('Error deleting transaction:', error);
+      alert("Failed to delete transaction");
     }
   };
 
@@ -89,7 +104,7 @@ const History = () => {
     <div className="history-container">
       <div className="page-header">
         <h1 className="page-title">Transaction History</h1>
-        <button 
+        <button
           className={`btn btn-secondary ${showFilters ? 'active' : ''}`}
           onClick={() => setShowFilters(!showFilters)}
         >
@@ -192,6 +207,7 @@ const History = () => {
                     <th>Dev Fee</th>
                     <th>Penalty</th>
                     <th>Total</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -207,6 +223,15 @@ const History = () => {
                         <td>{formatCurrency(tx.developmentFee)}</td>
                         <td>{formatCurrency(tx.penalty)}</td>
                         <td className="font-bold">{formatCurrency(total)}</td>
+                        <td>
+                          <button
+                            className="btn-icon danger"
+                            onClick={() => deleteTransaction(tx.id)}
+                            title="Delete Transaction"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </td>
                       </tr>
                     );
                   })}
@@ -221,7 +246,7 @@ const History = () => {
                   Showing {((pagination.page - 1) * pagination.limit) + 1} - {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total}
                 </div>
                 <div className="pagination-buttons">
-                  <button 
+                  <button
                     className="btn btn-small btn-secondary"
                     onClick={() => goToPage(pagination.page - 1)}
                     disabled={pagination.page === 1}
@@ -232,7 +257,7 @@ const History = () => {
                   <span className="page-indicator">
                     Page {pagination.page} of {pagination.totalPages}
                   </span>
-                  <button 
+                  <button
                     className="btn btn-small btn-secondary"
                     onClick={() => goToPage(pagination.page + 1)}
                     disabled={pagination.page === pagination.totalPages}
