@@ -60,7 +60,7 @@ const LoanModal = ({ isOpen, onClose, onSuccess, maxAmount }) => {
       // Use the new query params
       // Force excludeActiveLoans=true
       const res = await api.get(`/member/list?search=${search}&excludeActiveLoans=true`);
-      setMembers(res.data);
+      setMembers(res.data.data || res.data);
     } catch (err) {
       console.error('Error fetching members:', err);
     } finally {

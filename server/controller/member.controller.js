@@ -91,10 +91,13 @@ export const getMember = async (req, res) => {
 };
 
 export const getAllMember = async (req, res) => {
-    const { search, excludeActiveLoans } = req.query;
+    const { search, excludeActiveLoans, page = 1, limit = 20 } = req.query;
 
     try {
         const where = {};
+        const pageNum = parseInt(page);
+        const limitNum = parseInt(limit);
+        const skip = (pageNum - 1) * limitNum;
         
         if (search) {
             where.OR = [
@@ -112,13 +115,26 @@ export const getAllMember = async (req, res) => {
             };
         }
 
-        const members = await prisma.member.findMany({
-            where,
-            orderBy: { createdAt: 'desc' },
-            include: { account: true },
-            take: 50 // Limit results for performance
+        const [total, members] = await Promise.all([
+            prisma.member.count({ where }),
+            prisma.member.findMany({
+                where,
+                orderBy: { createdAt: 'desc' },
+                include: { account: true },
+                skip,
+                take: limitNum
+            })
+        ]);
+
+        res.status(200).json({
+            data: members,
+            pagination: {
+                page: pageNum,
+                limit: limitNum,
+                total,
+                totalPages: Math.ceil(total / limitNum)
+            }
         });
-        res.status(200).json(members);
     } catch (error) {
         console.log(error);
         res.status(500).json({ error: "Failed to get members" });

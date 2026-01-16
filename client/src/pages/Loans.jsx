@@ -108,7 +108,7 @@ const Loans = () => {
     setLoadingMembers(true);
     try {
       const res = await api.get(`/member/list?search=${search}`);
-      setMembers(res.data);
+      setMembers(res.data.data || res.data);
     } catch (error) {
       console.error('Error fetching members:', error);
     } finally {
@@ -342,7 +342,7 @@ const Loans = () => {
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th>ID</th>
+                    <th>Account No.</th>
                     <th>Member</th>
                     <th>Principal</th>
                     <th>Interest Rate</th>
@@ -360,7 +360,7 @@ const Loans = () => {
                       onClick={() => navigate(`/loans/${loan.id}`)}
                       className="clickable-row"
                     >
-                      <td>#{loan.id}</td>
+                      <td className="font-mono">{loan.member?.account?.accountNumber || 'N/A'}</td>
                       <td>
                         <div className="member-cell">
                           <span className="member-name">{loan.member?.name || 'N/A'}</span>

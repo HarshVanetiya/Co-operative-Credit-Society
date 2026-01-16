@@ -175,7 +175,14 @@ export const getAllLoans = async (req, res) => {
                 take: limitNum,
                 include: {
                     member: {
-                        select: { id: true, name: true, mobile: true }
+                        select: { 
+                            id: true, 
+                            name: true, 
+                            mobile: true,
+                            account: {
+                                select: { accountNumber: true }
+                            }
+                        }
                     }
                 }
             })
