@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Modal from './Modal';
 import api from '../lib/api';
 import { Loader } from 'lucide-react';
@@ -9,19 +9,29 @@ const LoanPaymentModal = ({ isOpen, onClose, loan, onSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
+    }
+  }, [isOpen]);
+
   // Initialize principal with standard EMI amount when modal opens
   if (!loan && isOpen) return null; // Safety check
-  
+
   // We need to set the initial principal value when loan data becomes available or modal opens
   // However, doing this in render or effect needs care to avoid loops.
   // Let's use a key or just default it in state initialization if possible, 
   // but loan prop might change. 
   // Better approach: Use useEffect to reset state when modal opens.
-  
+
   // Use a separate useEffect for initialization
   // Note: We can't use hooks conditionally so we'll just put it at the top level
   // but we need to guard against loan being null in the effect.
-  
+
   if (!loan) return null;
 
   const interestAmount = loan.remainingBalance * loan.interestRate;
@@ -30,7 +40,7 @@ const LoanPaymentModal = ({ isOpen, onClose, loan, onSuccess }) => {
   // Derive values from state for rendering
   const principalAmount = principal === '' ? standardEmiPrincipal : (parseFloat(principal) || 0);
   const penaltyAmount = parseFloat(penalty) || 0;
-  
+
   const totalPayment = principalAmount + interestAmount + penaltyAmount;
 
   const handlePenaltyChange = (e) => {
@@ -57,9 +67,9 @@ const LoanPaymentModal = ({ isOpen, onClose, loan, onSuccess }) => {
 
     // Additional Validation
     if (principalAmount > loan.remainingBalance) {
-        setError(`Principal cannot exceed remaining balance (₹${loan.remainingBalance})`);
-        setLoading(false);
-        return;
+      setError(`Principal cannot exceed remaining balance (₹${loan.remainingBalance})`);
+      setLoading(false);
+      return;
     }
 
     try {
@@ -98,27 +108,27 @@ const LoanPaymentModal = ({ isOpen, onClose, loan, onSuccess }) => {
         {/* Payment Summary */}
         <div className="payment-summary-card">
           <h4>Payment Breakdown</h4>
-          
+
           <div className="summary-row">
             <span>Current Balance:</span>
             <span className="value">{formatCurrency(loan.remainingBalance)}</span>
           </div>
-          
+
           <div className="summary-row">
             <span>Interest ({(loan.interestRate * 100).toFixed(1)}%):</span>
             <span className="value">{formatCurrency(interestAmount)}</span>
           </div>
 
           <div className="summary-row">
-             <span>Principal Payment:</span>
-             <span className="value">{formatCurrency(principalAmount)}</span>
+            <span>Principal Payment:</span>
+            <span className="value">{formatCurrency(principalAmount)}</span>
           </div>
-          
+
           <div className="summary-row">
             <span>Penalty:</span>
             <span className="value">{formatCurrency(penaltyAmount)}</span>
           </div>
-          
+
           <div className="summary-row total">
             <span>Total To Pay:</span>
             <span className="value">{formatCurrency(totalPayment)}</span>
@@ -136,6 +146,7 @@ const LoanPaymentModal = ({ isOpen, onClose, loan, onSuccess }) => {
         <div className="form-group">
           <label className="label">Principal Amount (₹)</label>
           <input
+            ref={inputRef}
             type="text"
             value={principal === '' ? standardEmiPrincipal : principal}
             onChange={handlePrincipalChange}

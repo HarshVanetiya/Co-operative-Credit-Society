@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Modal from './Modal';
 import api from '../lib/api';
 import { Loader } from 'lucide-react';
@@ -11,6 +11,16 @@ const DepositModal = ({ isOpen, onClose, member, onSuccess }) => {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
+    }
+  }, [isOpen]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -78,6 +88,7 @@ const DepositModal = ({ isOpen, onClose, member, onSuccess }) => {
         <div className="form-group">
           <label className="label">Basic Amount (₹)</label>
           <input
+            ref={inputRef}
             type="text"
             name="basicAmount"
             value={formData.basicAmount}

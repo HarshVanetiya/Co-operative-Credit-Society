@@ -16,6 +16,27 @@ const LoanDetails = () => {
     fetchLoan();
   }, [id]);
 
+  // Handle Space key to open modal
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Don't trigger if user is typing in an input
+      if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
+        return;
+      }
+
+      if (e.code === 'Space' || e.key === ' ') {
+        e.preventDefault(); // Prevent page scroll
+        // Only open if loan is active
+        if (loan?.status === 'ACTIVE') {
+          setIsPaymentModalOpen(true);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [loan]); // Dependency on loan to check status
+
   const fetchLoan = async () => {
     setLoading(true);
     try {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Modal from './Modal';
 import api from '../lib/api';
 import { Search, Loader, X, ChevronDown } from 'lucide-react';
@@ -20,6 +20,8 @@ const LoanModal = ({ isOpen, onClose, onSuccess, maxAmount }) => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [selectedMemberName, setSelectedMemberName] = useState('');
 
+  const searchInputRef = useRef(null);
+
   // Debounce search term
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -37,6 +39,11 @@ const LoanModal = ({ isOpen, onClose, onSuccess, maxAmount }) => {
       setMembers([]);
       // Initial fetch
       fetchEligibleMembers('');
+
+      // Auto focus
+      setTimeout(() => {
+        searchInputRef.current?.focus();
+      }, 100);
     }
   }, [isOpen]);
 
@@ -177,6 +184,7 @@ const LoanModal = ({ isOpen, onClose, onSuccess, maxAmount }) => {
           <label className="label">Select Member</label>
           <div className="search-input-wrapper" style={{ position: 'relative' }}>
             <input
+              ref={searchInputRef}
               type="text"
               placeholder="Search member by name..."
               value={selectedMemberName}

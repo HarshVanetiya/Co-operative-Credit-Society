@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Modal from './Modal';
 import api from '../lib/api';
 import { Loader } from 'lucide-react';
@@ -12,9 +12,19 @@ const WithdrawalModal = ({ isOpen, onClose, onSuccess, orgAmount, penaltyAmount 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
+    }
+  }, [isOpen]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
-    
+
     if (name === 'amount') {
       if (value === '' || /^\d*\.?\d*$/.test(value)) {
         setFormData((prev) => ({ ...prev, [name]: value }));
@@ -36,7 +46,7 @@ const WithdrawalModal = ({ isOpen, onClose, onSuccess, orgAmount, penaltyAmount 
       setError('Please enter a purpose for the withdrawal');
       return;
     }
-    
+
     const withdrawAmount = parseFloat(amount);
     if (!withdrawAmount || withdrawAmount <= 0) {
       setError('Please enter a valid amount');
@@ -94,6 +104,7 @@ const WithdrawalModal = ({ isOpen, onClose, onSuccess, orgAmount, penaltyAmount 
         <div className="form-group">
           <label className="label">Purpose</label>
           <input
+            ref={inputRef}
             type="text"
             name="purpose"
             value={formData.purpose}

@@ -53,6 +53,24 @@ const Loans = () => {
     fetchMembers();
   }, [filter, memberFilter]);
 
+  // Handle Space key to open modal
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Don't trigger if user is typing in an input
+      if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
+        return;
+      }
+
+      if (e.code === 'Space' || e.key === ' ') {
+        e.preventDefault(); // Prevent page scroll
+        setIsLoanModalOpen(true);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   const fetchLoans = async (page = 1) => {
     setLoading(true);
     try {
