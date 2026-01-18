@@ -30,6 +30,7 @@ export const createMemberSchema = z.object({
 });
 
 export const updateMemberSchema = z.object({
+    accountNumber: z.string().min(1, "Account number cannot be empty").optional(),
     mobile: z
         .string()
         .min(10, "Mobile number must be at least 10 digits")

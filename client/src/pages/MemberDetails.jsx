@@ -106,18 +106,24 @@ const MemberDetails = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
+    setError('');
     try {
       const updateData = {
         name: member.name,
         mobile: member.mobile,
         address: member.address,
-        fathersName: member.fathersName
+        fathersName: member.fathersName,
+        accountNumber: member.account?.accountNumber
       };
-      await api.put(`/member/update/${id}`, updateData);
+      const response = await api.put(`/member/update/${id}`, updateData);
+      // Update local state with response
+      setMember(response.data);
       alert('Member updated successfully!');
     } catch (error) {
       console.error('Error updating member', error);
-      alert('Failed to update member.');
+      const errorMessage = error.response?.data?.error || 'Failed to update member.';
+      setError(errorMessage);
+      alert(errorMessage);
     } finally {
       setSaving(false);
     }
@@ -210,9 +216,13 @@ const MemberDetails = () => {
                   <label className="label">Account Number</label>
                   <input
                     type="text"
-                    value={member.account.accountNumber || ''}
-                    readOnly
-                    className="input read-only"
+                    name="accountNumber"
+                    value={member.account?.accountNumber || ''}
+                    onChange={(e) => setMember(prev => ({
+                      ...prev,
+                      account: { ...prev.account, accountNumber: e.target.value }
+                    }))}
+                    className="input"
                   />
                 </div>
                 <div className="form-group">

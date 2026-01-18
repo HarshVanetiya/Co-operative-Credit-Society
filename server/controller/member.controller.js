@@ -9,7 +9,7 @@ const generateAccountNumber = () => {
 
 export const createMember = async (req, res) => {
     let { name, mobile, address, fathersName, initialAmount, developmentFee, accountNumber } = req.body;
-    
+
     // Capitalize name and father's name
     const capitalize = (str) => str ? str.replace(/\b\w/g, char => char.toUpperCase()) : str;
     name = capitalize(name);
@@ -56,17 +56,17 @@ export const createMember = async (req, res) => {
         res.status(201).json(result);
     } catch (error) {
         console.log("Error creating member:", error);
-        
+
         // Handle specific error for unique constraint violation (account number)
         if (error.code === 'P2002') {
-             // The meta target will tell us which field failed. 
-             // With recent prisma versions, it might be in meta.target
-             const target = error.meta?.target || [];
-             if (target.includes('accountNumber')) {
-                 return res.status(409).json({ error: "Account number already exists" });
-             }
-             // Fallback if we can't identify exactly but code is P2002
-             return res.status(409).json({ error: "A unique constraint failed. Check account number." });
+            // The meta target will tell us which field failed. 
+            // With recent prisma versions, it might be in meta.target
+            const target = error.meta?.target || [];
+            if (target.includes('accountNumber')) {
+                return res.status(409).json({ error: "Account number already exists" });
+            }
+            // Fallback if we can't identify exactly but code is P2002
+            return res.status(409).json({ error: "A unique constraint failed. Check account number." });
         }
 
         res.status(500).json({ error: "Failed to create member" });
@@ -91,14 +91,11 @@ export const getMember = async (req, res) => {
 };
 
 export const getAllMember = async (req, res) => {
-    const { search, excludeActiveLoans, page = 1, limit = 20 } = req.query;
+    const { search, excludeActiveLoans } = req.query;
 
     try {
         const where = {};
-        const pageNum = parseInt(page);
-        const limitNum = parseInt(limit);
-        const skip = (pageNum - 1) * limitNum;
-        
+
         if (search) {
             where.OR = [
                 { name: { contains: search, mode: 'insensitive' } },
@@ -115,25 +112,15 @@ export const getAllMember = async (req, res) => {
             };
         }
 
-        const [total, members] = await Promise.all([
-            prisma.member.count({ where }),
-            prisma.member.findMany({
-                where,
-                orderBy: { createdAt: 'desc' },
-                include: { account: true },
-                skip,
-                take: limitNum
-            })
-        ]);
+        const members = await prisma.member.findMany({
+            where,
+            orderBy: { account: { accountNumber: 'asc' } },
+            include: { account: true }
+        });
 
         res.status(200).json({
             data: members,
-            pagination: {
-                page: pageNum,
-                limit: limitNum,
-                total,
-                totalPages: Math.ceil(total / limitNum)
-            }
+            total: members.length
         });
     } catch (error) {
         console.log(error);
@@ -143,26 +130,68 @@ export const getAllMember = async (req, res) => {
 
 export const updateMember = async (req, res) => {
     const { id } = req.params;
-    let { name, mobile, address, fathersName } = req.body;
+    let { name, mobile, address, fathersName, accountNumber } = req.body;
     console.log('Update request body:', req.body);
     console.log('Extracted fathersName:', fathersName);
-    
+    console.log('Extracted accountNumber:', accountNumber);
+
     // Capitalize name and father's name
     const capitalize = (str) => str ? str.replace(/\b\w/g, char => char.toUpperCase()) : str;
     name = capitalize(name);
     fathersName = capitalize(fathersName);
 
     try {
-        const updatedMember = await prisma.member.update({
-            where: { id: parseInt(id) },
-            data: { name, mobile, address, fathersName },
-            include: {
-                account: true
-            }
-        });
-        res.status(200).json(updatedMember);
+        // Prepare member update data
+        const memberUpdateData = { name, mobile, address, fathersName };
+
+        // If accountNumber is provided, update it separately
+        if (accountNumber !== undefined && accountNumber !== null && accountNumber !== '') {
+            // Use transaction to ensure atomicity
+            const updatedMember = await prisma.$transaction(async (tx) => {
+                // Update member details
+                const member = await tx.member.update({
+                    where: { id: parseInt(id) },
+                    data: memberUpdateData,
+                    include: { account: true }
+                });
+
+                // Update account number if provided and member has account
+                if (member.account) {
+                    await tx.account.update({
+                        where: { id: member.account.id },
+                        data: { accountNumber }
+                    });
+                }
+
+                // Fetch updated member with account
+                return await tx.member.findUnique({
+                    where: { id: parseInt(id) },
+                    include: { account: true }
+                });
+            });
+
+            return res.status(200).json(updatedMember);
+        } else {
+            // No account number update, just update member
+            const updatedMember = await prisma.member.update({
+                where: { id: parseInt(id) },
+                data: memberUpdateData,
+                include: { account: true }
+            });
+            return res.status(200).json(updatedMember);
+        }
     } catch (error) {
         console.log(error);
+
+        // Handle unique constraint violation for account number
+        if (error.code === 'P2002') {
+            const target = error.meta?.target || [];
+            if (target.includes('accountNumber')) {
+                return res.status(409).json({ error: "Account number already exists" });
+            }
+            return res.status(409).json({ error: "A unique constraint failed." });
+        }
+
         res.status(500).json({ error: "Failed to update member" });
     }
 };
