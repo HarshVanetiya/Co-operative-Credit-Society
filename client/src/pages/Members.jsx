@@ -105,7 +105,7 @@ const Members = () => {
               <tr>
                 <th>Name</th>
                 <th>Account No.</th>
-                <th>Total Amount</th>
+                <th className="text-right">Total Amount</th>
                 <th>Address</th>
                 <th style={{ textAlign: 'right' }}>Action</th>
               </tr>
@@ -118,7 +118,7 @@ const Members = () => {
                 >
                   <td style={{ fontWeight: 500 }}>{member.name || 'N/A'}</td>
                   <td className="mobile-text">{member.account?.accountNumber || 'N/A'}</td>
-                  <td style={{ fontWeight: 500, color: 'var(--text-primary)' }}>
+                  <td style={{ fontWeight: 500 }} className="text-right">
                     {`₹ ${(member.account?.totalAmount || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`}
                   </td>
                   <td>

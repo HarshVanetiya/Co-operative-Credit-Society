@@ -28,7 +28,7 @@ export const getMonthlyActivity = async (req, res) => {
                     }
                 }
             },
-            orderBy: { name: 'asc' }
+            orderBy: { account: { accountNumber: 'asc' } }
         });
 
         // 2. Fetch Deposits (TransactionLogs)
@@ -83,7 +83,7 @@ export const getMonthlyActivity = async (req, res) => {
         const memberRows = members.map(m => {
             const depositAmt = depositMap[m.id] || 0;
             const loanAmt = loanMap[m.id] || 0;
-            
+
             // Check if member has EVER had a loan or currently active to determine "N/A" vs "0"
             // Requirement: "if loan is running then give stats if not then na"
             // We can check m.loans array. If they have ANY active loan, we show 0 or amount.
@@ -91,7 +91,7 @@ export const getMonthlyActivity = async (req, res) => {
             // Let's assume based on payment: If > 0 show amount. 
             // If 0, check compatible loans.
             const hasActiveOrRecentLoan = m.loans.some(l => l.status === 'ACTIVE' || l.updatedAt >= startDate);
-            
+
             return {
                 memberId: m.id,
                 name: m.name,
@@ -99,7 +99,7 @@ export const getMonthlyActivity = async (req, res) => {
                 accountNumber: m.account?.accountNumber || 'N/A',
                 depositAmount: depositAmt,
                 loanAmount: loanAmt,
-                loanStatus: hasActiveOrRecentLoan ? 'ACTIVE' : 'NONE', 
+                loanStatus: hasActiveOrRecentLoan ? 'ACTIVE' : 'NONE',
                 totalPaid: depositAmt + loanAmt
             };
         });
@@ -138,25 +138,18 @@ export const getExpectedCollections = async (req, res) => {
                     where: { status: 'ACTIVE' }
                 }
             },
-            orderBy: { name: 'asc' }
+            orderBy: { account: { accountNumber: 'asc' } }
         });
 
         const expectedList = members.map(member => {
             const hasActiveLoan = member.loans.length > 0;
-            let loanExpectation = 0;
-            let loanDetails = null;
+            let loanPrincipal = 0;
+            let loanInterest = 0;
 
             if (hasActiveLoan) {
-                const loan = member.loans[0]; 
-                const interest = loan.remainingBalance * loan.interestRate;
-                let principalComponent = Math.min(loan.emiAmount, loan.remainingBalance);
-                
-                loanExpectation = interest + principalComponent;
-                
-                loanDetails = {
-                    expectedInterest: interest,
-                    expectedPrincipal: principalComponent
-                };
+                const loan = member.loans[0];
+                loanInterest = loan.remainingBalance * loan.interestRate;
+                loanPrincipal = Math.min(loan.emiAmount, loan.remainingBalance);
             }
 
             return {
@@ -165,9 +158,15 @@ export const getExpectedCollections = async (req, res) => {
                 mobile: member.mobile,
                 accountNumber: member.account?.accountNumber || 'N/A',
                 baseAmount: STANDARD_FEE,
-                loanAmount: loanExpectation,
-                hasActiveLoan, 
-                totalExpected: STANDARD_FEE + loanExpectation
+                loanAmount: loanPrincipal + loanInterest,
+                hasActiveLoan,
+                totalExpected: STANDARD_FEE + loanPrincipal + loanInterest,
+                breakdown: {
+                    basic: 500,
+                    devFee: 20,
+                    loanPrincipal,
+                    loanInterest
+                }
             };
         });
 
@@ -197,32 +196,35 @@ export const getMemberStatus = async (req, res) => {
                     where: { status: 'ACTIVE' }
                 }
             },
-            orderBy: { name: 'asc' }
+            orderBy: { account: { accountNumber: 'asc' } }
         });
 
         const statusList = members.map(member => {
             const hasActiveLoan = member.loans.length > 0;
             let remainingPrincipal = 0;
-            let loanExpectation = 0;
+            let loanPrincipal = 0;
+            let loanInterest = 0;
 
             if (hasActiveLoan) {
-                const loan = member.loans[0]; 
+                const loan = member.loans[0];
                 remainingPrincipal = loan.remainingBalance;
-                
-                const interest = loan.remainingBalance * loan.interestRate;
-                // emiAmount in DB is the principal component (Principal / Months)
-                const principalComponent = Math.min(loan.emiAmount, loan.remainingBalance);
-                
-                loanExpectation = interest + principalComponent;
+                loanInterest = loan.remainingBalance * loan.interestRate;
+                loanPrincipal = Math.min(loan.emiAmount, loan.remainingBalance);
             }
 
             return {
                 memberId: member.id,
                 name: member.name,
-                fathersName: member.fathersName || 'N/A', // Added Fathers Name
+                fathersName: member.fathersName || 'N/A',
                 accountNumber: member.account?.accountNumber || 'N/A',
                 remainingLoanPrincipal: remainingPrincipal,
-                expectedAmount: STANDARD_FEE + loanExpectation
+                expectedAmount: STANDARD_FEE + loanPrincipal + loanInterest,
+                breakdown: {
+                    basic: 500,
+                    devFee: 20,
+                    loanPrincipal,
+                    loanInterest
+                }
             };
         });
 

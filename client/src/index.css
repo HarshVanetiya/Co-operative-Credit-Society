@@ -39,6 +39,10 @@ button {
 }
 
 /* Utilities */
+.text-right {
+  text-align: right;
+}
+
 .btn {
   display: inline-flex;
   align-items: center;

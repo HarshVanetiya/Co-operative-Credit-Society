@@ -7,8 +7,8 @@ export const createLoan = async (req, res) => {
     try {
         // Validate required fields
         if (!memberId || !principalAmount || !interestRate || !timePeriod) {
-            return res.status(400).json({ 
-                error: "memberId, principalAmount, interestRate, and timePeriod are required" 
+            return res.status(400).json({
+                error: "memberId, principalAmount, interestRate, and timePeriod are required"
             });
         }
 
@@ -35,8 +35,8 @@ export const createLoan = async (req, res) => {
         });
 
         if (activeLoan) {
-            return res.status(400).json({ 
-                error: "Member already has an active loan. Only one active loan per member is allowed." 
+            return res.status(400).json({
+                error: "Member already has an active loan. Only one active loan per member is allowed."
             });
         }
 
@@ -56,8 +56,8 @@ export const createLoan = async (req, res) => {
         const availableFunds = loanableAmount - totalLoaned;
 
         if (principal > availableFunds) {
-            return res.status(400).json({ 
-                error: `Insufficient funds. Available: ₹${availableFunds.toFixed(2)}, Requested: ₹${principal.toFixed(2)}` 
+            return res.status(400).json({
+                error: `Insufficient funds. Available: ₹${availableFunds.toFixed(2)}, Requested: ₹${principal.toFixed(2)}`
             });
         }
 
@@ -149,12 +149,15 @@ export const getMemberLoans = async (req, res) => {
 
 // Get all loans with optional filters and pagination
 export const getAllLoans = async (req, res) => {
-    const { status, memberId, page = 1, limit = 20 } = req.query;
+    const { status, memberId, page = 1, limit } = req.query;
 
     try {
         const where = {};
         const pageNum = parseInt(page);
-        const limitNum = parseInt(limit);
+
+        // If limit is not provided, we fetch all records by setting a very high limit
+        // This effectively removes pagination for the frontend while keeping the logic stable
+        const limitNum = limit ? parseInt(limit) : 1000000;
         const skip = (pageNum - 1) * limitNum;
 
         if (status) {
@@ -170,14 +173,20 @@ export const getAllLoans = async (req, res) => {
             prisma.loan.count({ where }),
             prisma.loan.findMany({
                 where,
-                orderBy: { createdAt: 'desc' },
+                orderBy: {
+                    member: {
+                        account: {
+                            accountNumber: 'asc'
+                        }
+                    }
+                },
                 skip,
                 take: limitNum,
                 include: {
                     member: {
-                        select: { 
-                            id: true, 
-                            name: true, 
+                        select: {
+                            id: true,
+                            name: true,
                             mobile: true,
                             account: {
                                 select: { accountNumber: true }
@@ -231,14 +240,14 @@ export const payLoanEmi = async (req, res) => {
 
         // Validation
         if (isNaN(requestedPrincipalInfo) || requestedPrincipalInfo < 0) {
-             return res.status(400).json({ error: "Invalid principal amount" });
+            return res.status(400).json({ error: "Invalid principal amount" });
         }
-        
+
         // Cannot pay more principal than remaining
         if (requestedPrincipalInfo > loan.remainingBalance) {
             // Cap it if they sent too much, or error? Let's error to be safe or cap it. 
             // Better to cap it to act as "Full Settlement"
-            requestedPrincipalInfo = loan.remainingBalance; 
+            requestedPrincipalInfo = loan.remainingBalance;
         }
 
         const actualPrincipalPaid = requestedPrincipalInfo;
@@ -250,20 +259,20 @@ export const payLoanEmi = async (req, res) => {
         // If they pay MORE than the standard EMI's principal component, that diff is "extra".
         // Standard emiPrincipal expectation:
         const standardEmiPrincipal = Math.min(loan.emiAmount, loan.remainingBalance);
-        
+
         // If they pay less than standard, extra is 0. If more, extra is difference.
         // NOTE: This is just for record keeping in LoanPayment table.
         const extraPrincipal = Math.max(0, actualPrincipalPaid - standardEmiPrincipal);
-        
+
         // Total payment
         const totalPayment = actualPrincipalPaid + interestAmount + penaltyAmount;
-        
+
         // New remaining balance
         const newRemainingBalance = loan.remainingBalance - actualPrincipalPaid;
-        
+
         // Check if loan is completed
         // specific check for small float errors, though < 1 is safe enough for "zero" usually, <=0 is best.
-        const isCompleted = newRemainingBalance <= 0.01; 
+        const isCompleted = newRemainingBalance <= 0.01;
 
         // Use transaction to ensure atomicity
         const result = await prisma.$transaction(async (tx) => {
@@ -405,7 +414,7 @@ export const deleteLoanPayment = async (req, res) => {
 
         // Use Prisma transaction to ensure atomicity
         await prisma.$transaction(async (tx) => {
-            
+
             // Revert organisation profit and penalty
             // Interest paid went to profit, penalty went to penalty
             await tx.organisation.update({
@@ -419,12 +428,12 @@ export const deleteLoanPayment = async (req, res) => {
             // Revert loan status and amounts
             // We need to add back the principal that was paid
             const newRemainingBalance = loan.remainingBalance + payment.principalPaid;
-            
+
             // Revert total interest paid
             // Revert status if it was completed
             // If loan is currently COMPLETED, and we revert a payment, it likely becomes ACTIVE again.
             // If it was ACTIVE, it stays ACTIVE.
-            
+
             await tx.loan.update({
                 where: { id: loan.id },
                 data: {

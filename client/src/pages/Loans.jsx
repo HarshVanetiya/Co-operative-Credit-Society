@@ -9,7 +9,7 @@ const Loans = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [loans, setLoans] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, totalPages: 0 });
+  const [pagination, setPagination] = useState({ total: 0 });
   const [filter, setFilter] = useState('ALL');
   const [memberFilter, setMemberFilter] = useState(searchParams.get('memberId') || '');
   const [members, setMembers] = useState([]);
@@ -48,7 +48,7 @@ const Loans = () => {
   }, [memberFilter, members]);
 
   useEffect(() => {
-    fetchLoans(1);
+    fetchLoans();
     fetchLoanableAmount();
     fetchMembers();
   }, [filter, memberFilter]);
@@ -71,12 +71,10 @@ const Loans = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const fetchLoans = async (page = 1) => {
+  const fetchLoans = async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      params.append('page', page);
-      params.append('limit', 20);
 
       if (filter !== 'ALL') {
         params.append('status', filter);
@@ -87,7 +85,7 @@ const Loans = () => {
 
       const res = await api.get(`/loan/all?${params}`);
       setLoans(res.data.data);
-      setPagination(res.data.pagination);
+      setPagination({ total: res.data.pagination.total });
     } catch (error) {
       console.error('Error fetching loans:', error);
     } finally {
@@ -117,7 +115,7 @@ const Loans = () => {
   };
 
   const handleLoanSuccess = () => {
-    fetchLoans(pagination.page);
+    fetchLoans();
     fetchLoanableAmount();
   };
 
@@ -158,11 +156,7 @@ const Loans = () => {
     fetchMembers('');
   };
 
-  const goToPage = (page) => {
-    if (page >= 1 && page <= pagination.totalPages) {
-      fetchLoans(page);
-    }
-  };
+
 
   const formatCurrency = (amount) => {
     return `₹ ${(amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
@@ -344,11 +338,11 @@ const Loans = () => {
                   <tr>
                     <th>Account No.</th>
                     <th>Member</th>
-                    <th>Principal</th>
-                    <th>Interest Rate</th>
+                    <th className="text-right">Principal</th>
+                    <th className="text-right">Interest Rate</th>
                     <th>Time Period</th>
-                    <th>EMI</th>
-                    <th>Remaining</th>
+                    <th className="text-right">EMI</th>
+                    <th className="text-right">Remaining</th>
                     <th>Status</th>
                     <th>Date</th>
                   </tr>
@@ -367,11 +361,11 @@ const Loans = () => {
                           <span className="member-mobile">{loan.member?.mobile}</span>
                         </div>
                       </td>
-                      <td>{formatCurrency(loan.principalAmount)}</td>
-                      <td>{(loan.interestRate * 100).toFixed(1)}%</td>
+                      <td className="text-right">{formatCurrency(loan.principalAmount)}</td>
+                      <td className="text-right">{(loan.interestRate * 100).toFixed(1)}%</td>
                       <td>{loan.timePeriod} months</td>
-                      <td>{formatCurrency(loan.emiAmount)}</td>
-                      <td className="remaining-balance">
+                      <td className="text-right">{formatCurrency(loan.emiAmount)}</td>
+                      <td className="text-right remaining-balance">
                         {formatCurrency(loan.remainingBalance)}
                       </td>
                       <td>{getStatusBadge(loan.status)}</td>
@@ -382,35 +376,7 @@ const Loans = () => {
               </table>
             </div>
 
-            {/* Pagination Controls */}
-            {pagination.totalPages > 1 && (
-              <div className="pagination-controls">
-                <div className="pagination-info">
-                  Showing {((pagination.page - 1) * pagination.limit) + 1} - {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total}
-                </div>
-                <div className="pagination-buttons">
-                  <button
-                    className="btn btn-small btn-secondary"
-                    onClick={() => goToPage(pagination.page - 1)}
-                    disabled={pagination.page === 1}
-                  >
-                    <ChevronLeft size={16} />
-                    Prev
-                  </button>
-                  <span className="page-indicator">
-                    Page {pagination.page} of {pagination.totalPages}
-                  </span>
-                  <button
-                    className="btn btn-small btn-secondary"
-                    onClick={() => goToPage(pagination.page + 1)}
-                    disabled={pagination.page === pagination.totalPages}
-                  >
-                    Next
-                    <ChevronRight size={16} />
-                  </button>
-                </div>
-              </div>
-            )}
+
           </>
         )}
       </div>
