@@ -78,12 +78,27 @@ export const getMember = async (req, res) => {
     try {
         const member = await prisma.member.findUnique({
             where: { id: parseInt(id) },
-            include: { account: true }
+            include: {
+                account: true,
+                loans: {
+                    where: { status: "ACTIVE" }
+                }
+            }
         });
+
         if (!member) {
             return res.status(404).json({ error: "Member not found" });
         }
-        res.status(200).json(member);
+
+        // Get latest transaction log
+        const lastTransaction = await prisma.transactionLog.findFirst({
+            where: { memberId: member.id },
+            orderBy: { createdAt: 'desc' }
+        });
+
+        const lastPaidDate = lastTransaction?.createdAt || null;
+
+        res.status(200).json({ ...member, lastPaidDate });
     } catch (error) {
         console.log(error);
         res.status(500).json({ error: "Failed to get member" });

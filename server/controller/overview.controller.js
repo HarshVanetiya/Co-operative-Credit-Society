@@ -44,10 +44,13 @@ export const getOverviewStats = async (req, res) => {
         // Calculate loanable amount
         const loanableAmount = totalMembersAmount - totalLoanedAmount;
 
+        // Calculate Cash in Hand (Org Amount + Penalty Fund + Available for Loan)
+        const cashInHand = (organisation.amount || 0) + (organisation.penalty || 0) + loanableAmount;
+
         // Get members who haven't deposited this month
         const now = new Date();
         const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        
+
         // Get all members with their last transaction date
         const membersWithPendingDeposits = await getMembersWithPendingDeposits(firstDayOfMonth);
 
@@ -63,6 +66,7 @@ export const getOverviewStats = async (req, res) => {
             activeLoansCount,
             totalLoanedAmount,
             loanableAmount,
+            cashInHand,
             membersWithPendingDeposits
         });
     } catch (error) {
@@ -115,17 +119,17 @@ async function getMembersWithPendingDeposits(firstDayOfMonth) {
         });
 
         let missedMonths = 1; // At least current month
-        
+
         if (lastTransaction) {
             const lastDate = new Date(lastTransaction.createdAt);
-            const monthsDiff = (now.getFullYear() - lastDate.getFullYear()) * 12 
-                             + (now.getMonth() - lastDate.getMonth());
+            const monthsDiff = (now.getFullYear() - lastDate.getFullYear()) * 12
+                + (now.getMonth() - lastDate.getMonth());
             missedMonths = Math.max(1, monthsDiff);
         } else {
             // No transactions ever - calculate from member creation
             const createdDate = new Date(member.createdAt);
-            const monthsDiff = (now.getFullYear() - createdDate.getFullYear()) * 12 
-                             + (now.getMonth() - createdDate.getMonth());
+            const monthsDiff = (now.getFullYear() - createdDate.getFullYear()) * 12
+                + (now.getMonth() - createdDate.getMonth());
             missedMonths = Math.max(1, monthsDiff);
         }
 

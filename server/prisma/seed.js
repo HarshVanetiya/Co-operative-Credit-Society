@@ -136,6 +136,7 @@ async function main() {
     console.log("🌱 Starting database seed...");
 
     await createOrganisation()
+    await createOperator()
     // await deleteAllMembers()
     // await deleteAllOperator()
     // await createOperator()

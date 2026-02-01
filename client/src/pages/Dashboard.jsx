@@ -49,7 +49,7 @@ const Dashboard = () => {
   };
 
   const formatCurrency = (amount) => {
-    return `₹ ${(amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
+    return `₹ ${Math.round(parseFloat(amount || 0)).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
   };
 
   const formatDate = (dateString) => {
@@ -72,9 +72,21 @@ const Dashboard = () => {
         </div>
         <div className="hero-decoration"></div>
       </div>
-      
+
       {/* Primary Stats Cards */}
       <div className="stats-grid">
+        <div className="stat-card-filled" style={{ background: 'linear-gradient(135deg, #4f46e5, #06b6d4)', color: 'white' }}>
+          <div className="stat-icon" style={{ background: 'rgba(255, 255, 255, 0.2)' }}>
+            <Wallet size={28} />
+          </div>
+          <div className="stat-info">
+            <p className="stat-label" style={{ color: 'rgba(255, 255, 255, 0.9)' }}>Cash in Hand</p>
+            <h2 className="stat-value" style={{ color: 'white' }}>
+              {loading ? '...' : formatCurrency(stats?.cashInHand)}
+            </h2>
+          </div>
+        </div>
+
         <div className="stat-card-filled">
           <div className="stat-icon">
             <IndianRupee size={28} />
@@ -128,7 +140,7 @@ const Dashboard = () => {
       <div className="org-actions-section">
         <h3 className="org-actions-title">Organisation Actions</h3>
         <div className="org-actions-buttons">
-          <button 
+          <button
             className="btn btn-primary"
             onClick={() => setIsWithdrawalModalOpen(true)}
             disabled={loading}
@@ -136,7 +148,7 @@ const Dashboard = () => {
             <Wallet size={20} />
             <span>Withdraw Funds</span>
           </button>
-          <button 
+          <button
             className="btn btn-secondary"
             onClick={() => navigate('/org-expenses')}
           >
@@ -150,7 +162,7 @@ const Dashboard = () => {
       <div className="section-divider">
         <h2 className="section-heading">Loan & Profit Overview</h2>
       </div>
-      
+
       <div className="stats-grid loan-stats">
         <div className="stat-card-filled profit-card">
           <div className="stat-icon profit">
@@ -161,7 +173,7 @@ const Dashboard = () => {
             <h2 className="stat-value profit-value">
               {loading ? '...' : formatCurrency(stats?.organisation?.profit)}
             </h2>
-            <button 
+            <button
               className="btn btn-small btn-audit"
               onClick={() => setIsAuditModalOpen(true)}
               disabled={!stats?.organisation?.profit || stats?.organisation?.profit <= 0}
@@ -189,17 +201,17 @@ const Dashboard = () => {
             <CircleDollarSign size={28} />
           </div>
           <div className="stat-info">
-            <p className="stat-label">Active Loans</p>
+            <p className="stat-label">Active Loans Total</p>
             <h2 className="stat-value">
-              {loading ? '...' : stats?.activeLoansCount || '0'}
+              {loading ? '...' : formatCurrency(stats?.totalLoanedAmount)}
             </h2>
             <small className="stat-subtext">
-              Total: {loading ? '...' : formatCurrency(stats?.totalLoanedAmount)}
+              Active Count: {loading ? '...' : stats?.activeLoansCount || '0'}
             </small>
           </div>
         </div>
 
-        <div 
+        <div
           className="stat-card-filled clickable"
           onClick={() => navigate('/loans')}
         >
@@ -222,7 +234,7 @@ const Dashboard = () => {
               <h2 className="section-heading">Recent Expenses</h2>
             </div>
             {hasMoreWithdrawals && (
-              <button 
+              <button
                 className="btn btn-small btn-secondary"
                 onClick={() => navigate('/org-expenses')}
               >
@@ -230,7 +242,7 @@ const Dashboard = () => {
               </button>
             )}
           </div>
-          
+
           <div className="card">
             <div className="table-container">
               <table className="data-table">
@@ -270,7 +282,7 @@ const Dashboard = () => {
             <h2 className="section-heading">Members With Pending Deposits</h2>
             <span className="count-badge">{stats.membersWithPendingDeposits.length}</span>
           </div>
-          
+
           <div className="card">
             <div className="table-container">
               <table className="data-table">
@@ -287,8 +299,8 @@ const Dashboard = () => {
                 </thead>
                 <tbody>
                   {stats.membersWithPendingDeposits.map((member) => (
-                    <tr 
-                      key={member.id} 
+                    <tr
+                      key={member.id}
                       className="clickable-row"
                       onClick={() => navigate(`/members/${member.id}`)}
                     >

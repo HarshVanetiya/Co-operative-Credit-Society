@@ -3,7 +3,8 @@ import {
     createTransaction,
     getAllTransactions,
     getMemberTransactions,
-    deleteTransaction
+    deleteTransaction,
+    smartDistribute
 } from "../controller/transaction.controller.js";
 
 const router = express.Router();
@@ -11,6 +12,7 @@ const router = express.Router();
 router.post("/create", createTransaction);
 router.get("/list", getAllTransactions);
 router.get("/member/:memberId", getMemberTransactions);
+router.post("/smart-distribute", smartDistribute);
 router.delete("/:id", deleteTransaction);
 
 export default router;

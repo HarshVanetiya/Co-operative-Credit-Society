@@ -3,7 +3,7 @@ import prisma from "../lib/prisma-client.js";
 // Create a new transaction log and update balances
 export const createTransaction = async (req, res) => {
     const { memberId, accountId, basicPay, developmentFee, penalty } = req.body;
-    
+
     try {
         // Validate required fields
         if (!memberId || !accountId) {
@@ -220,5 +220,163 @@ export const deleteTransaction = async (req, res) => {
     } catch (error) {
         console.error("Error deleting transaction:", error);
         res.status(500).json({ error: "Failed to delete transaction" });
+    }
+};
+// Smart Distribution of money
+export const smartDistribute = async (req, res) => {
+    const { memberId, totalAmount, penaltyProvided = 0 } = req.body;
+
+    try {
+        if (!memberId || isNaN(totalAmount) || totalAmount < 0) {
+            return res.status(400).json({ error: "Valid memberId and totalAmount are required" });
+        }
+
+        const amount = parseFloat(totalAmount);
+        const penaltyToPay = parseFloat(penaltyProvided) || 0;
+        let remaining = amount;
+
+        const result = await prisma.$transaction(async (tx) => {
+            // 1. Get Member, Account and active Loan
+            const member = await tx.member.findUnique({
+                where: { id: parseInt(memberId) },
+                include: {
+                    account: true,
+                    loans: {
+                        where: { status: "ACTIVE" },
+                        take: 1
+                    }
+                }
+            });
+
+            if (!member) throw new Error("Member not found");
+
+            const breakdown = {
+                penalty: 0,
+                developmentFee: 0,
+                baseDeposit: 0,
+                loanInterest: 0,
+                loanPrincipal: 0,
+                extraDeposit: 0
+            };
+
+            // 1. Take Penalty (Highest Priority)
+            const penaltyPaid = Math.min(remaining, penaltyToPay);
+            breakdown.penalty = penaltyPaid;
+            remaining -= penaltyPaid;
+
+            // 2. Take Development Fee (₹20)
+            const devFee = Math.min(remaining, 20);
+            breakdown.developmentFee = devFee;
+            remaining -= devFee;
+
+            // 3. Take Base Deposit (₹500)
+            const baseDeposit = Math.min(remaining, 500);
+            breakdown.baseDeposit = baseDeposit;
+            remaining -= baseDeposit;
+
+            // 4. Handle Loan if active
+            const activeLoan = member.loans[0];
+            let loanPaymentRecord = null;
+
+            if (activeLoan && remaining > 0) {
+                const interestDue = activeLoan.remainingBalance * activeLoan.interestRate;
+
+                // Pay interest first
+                const interestPaid = Math.min(remaining, interestDue);
+                breakdown.loanInterest = interestPaid;
+                remaining -= interestPaid;
+
+                // Pay principal with remaining
+                if (remaining > 0) {
+                    const principalPaid = Math.min(remaining, activeLoan.remainingBalance);
+                    breakdown.loanPrincipal = principalPaid;
+                    remaining -= principalPaid;
+                }
+
+                if (breakdown.loanInterest > 0 || breakdown.loanPrincipal > 0) {
+                    const totalLoanPaid = breakdown.loanInterest + breakdown.loanPrincipal;
+                    const newRemainingBalance = activeLoan.remainingBalance - breakdown.loanPrincipal;
+                    const isCompleted = newRemainingBalance <= 0.01;
+
+                    // Create loan payment record
+                    loanPaymentRecord = await tx.loanPayment.create({
+                        data: {
+                            loanId: activeLoan.id,
+                            principalPaid: breakdown.loanPrincipal,
+                            interestPaid: breakdown.loanInterest,
+                            penalty: 0, // Penalty is handled in general transaction log for now as per priority
+                            totalPaid: totalLoanPaid,
+                            remainingAfter: Math.max(0, newRemainingBalance),
+                            extraPrincipal: Math.max(0, breakdown.loanPrincipal - activeLoan.emiAmount)
+                        }
+                    });
+
+                    // Update loan
+                    await tx.loan.update({
+                        where: { id: activeLoan.id },
+                        data: {
+                            remainingBalance: Math.max(0, newRemainingBalance),
+                            totalInterestPaid: { increment: breakdown.loanInterest },
+                            status: isCompleted ? "COMPLETED" : "ACTIVE",
+                            completedAt: isCompleted ? new Date() : null
+                        }
+                    });
+
+                    // Update organisation profit
+                    await tx.organisation.update({
+                        where: { id: 1 },
+                        data: { profit: { increment: breakdown.loanInterest } }
+                    });
+                }
+            }
+
+            // 5. Remaining goes to extra deposit
+            if (remaining > 0) {
+                breakdown.extraDeposit = remaining;
+                remaining = 0;
+            }
+
+            const totalBasePay = breakdown.baseDeposit + breakdown.extraDeposit;
+
+            // 6. Create Transaction Log
+            const transactionLog = await tx.transactionLog.create({
+                data: {
+                    memberId: member.id,
+                    accountId: member.account.id,
+                    basicPay: totalBasePay,
+                    developmentFee: breakdown.developmentFee,
+                    penalty: breakdown.penalty,
+                }
+            });
+
+            // 7. Update Account balance
+            await tx.account.update({
+                where: { id: member.account.id },
+                data: { totalAmount: { increment: totalBasePay } }
+            });
+
+            // 8. Update Organisation amount and penalty
+            await tx.organisation.update({
+                where: { id: 1 },
+                data: {
+                    amount: { increment: breakdown.developmentFee },
+                    penalty: { increment: breakdown.penalty }
+                }
+            });
+
+            return {
+                transaction: transactionLog,
+                loanPayment: loanPaymentRecord,
+                breakdown: {
+                    ...breakdown,
+                    total: amount
+                }
+            };
+        });
+
+        res.status(201).json(result);
+    } catch (error) {
+        console.error("Error in smart distribution:", error);
+        res.status(500).json({ error: error.message || "Failed to process smart distribution" });
     }
 };

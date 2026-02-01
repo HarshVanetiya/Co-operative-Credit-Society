@@ -61,6 +61,7 @@ const ReceiptModal = ({ isOpen, onClose, member }) => {
 
   const generatePDF = (transactions, loanPayments, date) => {
     const doc = new jsPDF();
+    const pdfCurrency = (val) => `Rs. ${Math.round(val || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
 
     // Add Header
     doc.setFontSize(18);
@@ -92,6 +93,7 @@ const ReceiptModal = ({ isOpen, onClose, member }) => {
       let totalDev = 0;
       let totalPenalty = 0;
 
+
       transactions.forEach(tx => {
         const txDate = new Date(tx.createdAt).toLocaleDateString('en-IN');
         const total = (tx.basicPay || 0) + (tx.developmentFee || 0) + (tx.penalty || 0);
@@ -102,10 +104,10 @@ const ReceiptModal = ({ isOpen, onClose, member }) => {
 
         const rowData = [
           txDate,
-          `Rs. ${Number(tx.basicPay || 0).toFixed(2)}`,
-          `Rs. ${Number(tx.developmentFee || 0).toFixed(2)}`,
-          `Rs. ${Number(tx.penalty || 0).toFixed(2)}`,
-          `Rs. ${total.toFixed(2)}`
+          pdfCurrency(tx.basicPay),
+          pdfCurrency(tx.developmentFee),
+          pdfCurrency(tx.penalty),
+          pdfCurrency(total)
         ];
         tableRows.push(rowData);
       });
@@ -115,10 +117,10 @@ const ReceiptModal = ({ isOpen, onClose, member }) => {
 
       tableRows.push([
         'Total',
-        `Rs. ${totalBasic.toFixed(2)}`,
-        `Rs. ${totalDev.toFixed(2)}`,
-        `Rs. ${totalPenalty.toFixed(2)}`,
-        `Rs. ${sectionTotal.toFixed(2)}`
+        pdfCurrency(totalBasic),
+        pdfCurrency(totalDev),
+        pdfCurrency(totalPenalty),
+        pdfCurrency(sectionTotal)
       ]);
 
       autoTable(doc, {
@@ -148,17 +150,17 @@ const ReceiptModal = ({ isOpen, onClose, member }) => {
 
       loanPayments.forEach(payment => {
         const pDate = new Date(payment.createdAt).toLocaleDateString('en-IN');
-        
+
         totalPrincipal += (payment.principalPaid || 0);
         totalInterest += (payment.interestPaid || 0);
         totalLoanPenalty += (payment.penalty || 0);
 
         const rowData = [
           pDate,
-          `Rs. ${Number(payment.principalPaid || 0).toFixed(2)}`,
-          `Rs. ${Number(payment.interestPaid || 0).toFixed(2)}`,
-          `Rs. ${Number(payment.penalty || 0).toFixed(2)}`,
-          `Rs. ${Number(payment.totalPaid || 0).toFixed(2)}`
+          pdfCurrency(payment.principalPaid),
+          pdfCurrency(payment.interestPaid),
+          pdfCurrency(payment.penalty),
+          pdfCurrency(payment.totalPaid)
         ];
         loanRows.push(rowData);
       });
@@ -168,10 +170,10 @@ const ReceiptModal = ({ isOpen, onClose, member }) => {
 
       loanRows.push([
         'Total',
-        `Rs. ${totalPrincipal.toFixed(2)}`,
-        `Rs. ${totalInterest.toFixed(2)}`,
-        `Rs. ${totalLoanPenalty.toFixed(2)}`,
-        `Rs. ${loanSectionTotal.toFixed(2)}`
+        pdfCurrency(totalPrincipal),
+        pdfCurrency(totalInterest),
+        pdfCurrency(totalLoanPenalty),
+        pdfCurrency(loanSectionTotal)
       ]);
 
       autoTable(doc, {
@@ -183,14 +185,14 @@ const ReceiptModal = ({ isOpen, onClose, member }) => {
         styles: { fontSize: 9 },
         footStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: 'bold' }
       });
-      
+
       currentY = doc.lastAutoTable.finalY + 20;
     }
 
     // --- Grand Total ---
     doc.setFontSize(14);
     doc.setTextColor(0, 0, 0);
-    doc.text(`Grand Total: Rs. ${grandTotal.toFixed(2)}`, 140, currentY, { align: 'right' });
+    doc.text(`Grand Total: ${pdfCurrency(grandTotal)}`, 140, currentY, { align: 'right' });
 
     // Save
     doc.save(`Receipt_${member.name}_${months[month]}_${year}.pdf`);
@@ -229,18 +231,18 @@ const ReceiptModal = ({ isOpen, onClose, member }) => {
         </div>
 
         <div className="modal-actions">
-          <button 
-            type="button" 
-            className="btn btn-secondary" 
-            onClick={onClose} 
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={onClose}
             disabled={loading}
           >
             Cancel
           </button>
-          <button 
-            type="button" 
-            className="btn btn-primary" 
-            onClick={handleGenerate} 
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={handleGenerate}
             disabled={loading}
           >
             {loading ? <Loader size={20} className="animate-spin" /> : <Download size={20} />}

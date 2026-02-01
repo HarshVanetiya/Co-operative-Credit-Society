@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../lib/api';
-import { ArrowLeft, Save, Loader, Wallet, Receipt, CircleDollarSign, Clock, CheckCircle, Trash2 } from 'lucide-react';
+import { ArrowLeft, Save, Loader, Wallet, Receipt, CircleDollarSign, Clock, CheckCircle, Trash2, Calculator } from 'lucide-react';
 import DepositModal from '../components/DepositModal';
+import SmartDistributeModal from '../components/SmartDistributeModal';
 import ReceiptModal from '../components/ReceiptModal';
 
 const MemberDetails = () => {
@@ -19,6 +20,7 @@ const MemberDetails = () => {
   const [loadingLoans, setLoadingLoans] = useState(true);
   const [error, setError] = useState('');
   const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
+  const [isSmartDistributeModalOpen, setIsSmartDistributeModalOpen] = useState(false);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
 
   useEffect(() => {
@@ -73,6 +75,7 @@ const MemberDetails = () => {
     // Refresh member data and transactions
     fetchMember();
     fetchTransactions();
+    fetchLoans(); // Also fetch loans as they might have updated
   };
 
 
@@ -137,7 +140,7 @@ const MemberDetails = () => {
   };
 
   const formatCurrency = (amount) => {
-    return `₹ ${(amount || 0).toLocaleString()}`;
+    return `₹ ${Math.round(parseFloat(amount || 0)).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
   };
 
   if (loading) return <div className="empty-state">Loading...</div>;
@@ -229,7 +232,7 @@ const MemberDetails = () => {
                   <label className="label">Total Amount</label>
                   <input
                     type="text"
-                    value={`₹ ${member.account.totalAmount?.toLocaleString() || '0'}`}
+                    value={`₹ ${Math.round(member.account.totalAmount || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`}
                     readOnly
                     className="input read-only"
                   />
@@ -246,6 +249,15 @@ const MemberDetails = () => {
             >
               <Wallet size={20} />
               <span>Deposit Money</span>
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              style={{ backgroundColor: 'var(--success, #10b981)' }}
+              onClick={() => setIsSmartDistributeModalOpen(true)}
+            >
+              <Calculator size={20} />
+              <span>Smart Distribute</span>
             </button>
             <button type="submit" className="btn btn-primary" disabled={saving}>
               {saving ? <Loader size={20} className="animate-spin" /> : <Save size={20} />}
@@ -408,6 +420,13 @@ const MemberDetails = () => {
       <DepositModal
         isOpen={isDepositModalOpen}
         onClose={() => setIsDepositModalOpen(false)}
+        member={member}
+        onSuccess={handleDepositSuccess}
+      />
+
+      <SmartDistributeModal
+        isOpen={isSmartDistributeModalOpen}
+        onClose={() => setIsSmartDistributeModalOpen(false)}
         member={member}
         onSuccess={handleDepositSuccess}
       />
