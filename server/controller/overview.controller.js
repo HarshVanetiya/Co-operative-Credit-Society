@@ -25,10 +25,12 @@ export const getOverviewStats = async (req, res) => {
         // Get sum of all members' account balances
         const accountsAggregate = await prisma.account.aggregate({
             _sum: {
-                totalAmount: true
+                totalAmount: true,
+                releasedMoney: true
             }
         });
         const totalMembersAmount = accountsAggregate._sum.totalAmount || 0;
+        const totalReleasedAmount = accountsAggregate._sum.releasedMoney || 0;
 
         // Get active loans stats
         const activeLoansCount = await prisma.loan.count({
@@ -44,8 +46,8 @@ export const getOverviewStats = async (req, res) => {
         // Calculate loanable amount
         const loanableAmount = totalMembersAmount - totalLoanedAmount;
 
-        // Calculate Cash in Hand (Org Amount + Penalty Fund + Available for Loan)
-        const cashInHand = (organisation.amount || 0) + (organisation.penalty || 0) + loanableAmount;
+        // Calculate Cash in Hand (Org Amount + Penalty Fund + Available for Loan - Released Money)
+        const cashInHand = (organisation.amount || 0) + (organisation.penalty || 0) + loanableAmount - totalReleasedAmount;
 
         // Get members who haven't deposited this month
         const now = new Date();
@@ -65,6 +67,7 @@ export const getOverviewStats = async (req, res) => {
             totalMembersAmount,
             activeLoansCount,
             totalLoanedAmount,
+            totalReleasedAmount,
             loanableAmount,
             cashInHand,
             membersWithPendingDeposits

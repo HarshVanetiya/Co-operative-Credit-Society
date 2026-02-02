@@ -324,6 +324,120 @@ export const payLoanEmi = async (req, res) => {
     }
 };
 
+// Pay EMI for an OLD scheme loan (Manual entries)
+export const payOldLoanEmi = async (req, res) => {
+    const { id } = req.params;
+    const { principalPaid, interestPaid, penalty = 0 } = req.body;
+
+    try {
+        const pPaid = parseFloat(principalPaid);
+        const iPaid = parseFloat(interestPaid);
+        const penaltyAmount = parseFloat(penalty) || 0;
+
+        if (isNaN(pPaid) || pPaid < 0) {
+            return res.status(400).json({ error: "Invalid principal amount" });
+        }
+        if (isNaN(iPaid) || iPaid < 0) {
+            return res.status(400).json({ error: "Invalid interest amount" });
+        }
+
+        // Get the loan
+        const loan = await prisma.loan.findUnique({
+            where: { id: parseInt(id) }
+        });
+
+        if (!loan) {
+            return res.status(404).json({ error: "Loan not found" });
+        }
+
+        if (loan.status !== "ACTIVE") {
+            return res.status(400).json({ error: "Loan is not active" });
+        }
+
+        if (pPaid > loan.remainingBalance) {
+            return res.status(400).json({ error: "Principal cannot exceed remaining balance" });
+        }
+
+        const totalPayment = pPaid + iPaid + penaltyAmount;
+        const newRemainingBalance = loan.remainingBalance - pPaid;
+        const isCompleted = newRemainingBalance <= 0.01;
+
+        const result = await prisma.$transaction(async (tx) => {
+            // Create payment record
+            const payment = await tx.loanPayment.create({
+                data: {
+                    loanId: parseInt(id),
+                    principalPaid: pPaid,
+                    interestPaid: iPaid,
+                    penalty: penaltyAmount,
+                    extraPrincipal: 0, // In old scheme we don't track extra specially as it's all manual
+                    totalPaid: totalPayment,
+                    remainingAfter: Math.max(0, newRemainingBalance)
+                }
+            });
+
+            // Update loan
+            const updatedLoan = await tx.loan.update({
+                where: { id: parseInt(id) },
+                data: {
+                    remainingBalance: Math.max(0, newRemainingBalance),
+                    totalInterestPaid: { increment: iPaid },
+                    status: isCompleted ? "COMPLETED" : "ACTIVE",
+                    completedAt: isCompleted ? new Date() : null
+                },
+                include: {
+                    member: {
+                        select: { id: true, name: true, mobile: true }
+                    }
+                }
+            });
+
+            // Add interest to organisation profit and penalty to organisation penalty
+            await tx.organisation.update({
+                where: { id: 1 },
+                data: {
+                    profit: { increment: iPaid },
+                    penalty: { increment: penaltyAmount }
+                }
+            });
+
+            return { payment, loan: updatedLoan };
+        });
+
+        res.status(200).json(result);
+    } catch (error) {
+        console.error("Error processing old loan payment:", error);
+        res.status(500).json({ error: "Failed to process old loan payment" });
+    }
+};
+
+// Update loan type (NEW/OLD)
+export const updateLoanType = async (req, res) => {
+    const { id } = req.params;
+    const { type } = req.body;
+
+    if (!['NEW', 'OLD'].includes(type)) {
+        return res.status(400).json({ error: "Invalid loan type" });
+    }
+
+    try {
+        const loan = await prisma.loan.update({
+            where: { id: parseInt(id) },
+            data: { type },
+            include: {
+                member: {
+                    select: { id: true, name: true }
+                }
+            }
+        });
+
+        res.status(200).json(loan);
+    } catch (error) {
+        console.error("Error updating loan type:", error);
+        res.status(500).json({ error: "Failed to update loan type" });
+    }
+};
+
 // Get loanable amount (total funds available for loans)
 export const getLoanableAmount = async (req, res) => {
     try {

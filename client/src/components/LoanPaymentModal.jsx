@@ -6,6 +6,7 @@ import { Loader } from 'lucide-react';
 const LoanPaymentModal = ({ isOpen, onClose, loan, onSuccess }) => {
   const [penalty, setPenalty] = useState('');
   const [principal, setPrincipal] = useState('');
+  const [interest, setInterest] = useState(''); // Added for manual interest
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -34,11 +35,15 @@ const LoanPaymentModal = ({ isOpen, onClose, loan, onSuccess }) => {
 
   if (!loan) return null;
 
-  const interestAmount = loan.remainingBalance * loan.interestRate;
+  const isOldScheme = loan.type === 'OLD';
+  const interestAmount = isOldScheme
+    ? (interest === '' ? (loan.remainingBalance * loan.interestRate) : (parseFloat(interest) || 0))
+    : (loan.remainingBalance * loan.interestRate);
+
   const standardEmiPrincipal = Math.min(loan.emiAmount, loan.remainingBalance);
 
   // Derive values from state for rendering
-  const principalAmount = principal === '' ? standardEmiPrincipal : (parseFloat(principal) || 0);
+  const principalAmount = principal === '' ? (isOldScheme ? 0 : standardEmiPrincipal) : (parseFloat(principal) || 0);
   const penaltyAmount = parseFloat(penalty) || 0;
 
   const totalPayment = principalAmount + interestAmount + penaltyAmount;
@@ -59,6 +64,14 @@ const LoanPaymentModal = ({ isOpen, onClose, loan, onSuccess }) => {
     }
   };
 
+  const handleInterestChange = (e) => {
+    const value = e.target.value;
+    if (value === '' || /^\d*\.?\d*$/.test(value)) {
+      setInterest(value);
+      setError('');
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -73,10 +86,18 @@ const LoanPaymentModal = ({ isOpen, onClose, loan, onSuccess }) => {
     }
 
     try {
-      await api.post(`/loan/pay/${loan.id}`, {
-        penalty: penaltyAmount,
-        principalPaid: principalAmount,
-      });
+      if (isOldScheme) {
+        await api.post(`/loan/pay-old/${loan.id}`, {
+          penalty: penaltyAmount,
+          principalPaid: principalAmount,
+          interestPaid: interestAmount,
+        });
+      } else {
+        await api.post(`/loan/pay/${loan.id}`, {
+          penalty: penaltyAmount,
+          principalPaid: principalAmount,
+        });
+      }
 
       alert('Payment recorded successfully!');
       handleClose();
@@ -91,7 +112,8 @@ const LoanPaymentModal = ({ isOpen, onClose, loan, onSuccess }) => {
 
   const handleClose = () => {
     setPenalty('');
-    setPrincipal(''); // Reset to empty to trigger default on next open if needed, or better logic in parent
+    setPrincipal('');
+    setInterest('');
     setError('');
     onClose();
   };
@@ -142,20 +164,39 @@ const LoanPaymentModal = ({ isOpen, onClose, loan, onSuccess }) => {
           </div>
         </div>
 
+        {isOldScheme && (
+          <div className="form-group">
+            <label className="label">Interest Amount (₹)</label>
+            <input
+              type="text"
+              value={interest === '' ? (loan.remainingBalance * loan.interestRate) : interest}
+              onChange={handleInterestChange}
+              className="input"
+              placeholder="Enter interest amount"
+              disabled={loading}
+            />
+            <small className="help-text">
+              Manual interest entry for OLD scheme.
+            </small>
+          </div>
+        )}
+
         {/* Principal Input */}
         <div className="form-group">
           <label className="label">Principal Amount (₹)</label>
           <input
             ref={inputRef}
             type="text"
-            value={principal === '' ? standardEmiPrincipal : principal}
+            value={principal === '' ? (isOldScheme ? '0' : standardEmiPrincipal) : principal}
             onChange={handlePrincipalChange}
             className="input"
-            placeholder={`Default: ${standardEmiPrincipal}`}
+            placeholder={isOldScheme ? "Enter principal to deduct" : `Default: ${standardEmiPrincipal}`}
             disabled={loading}
           />
           <small className="help-text">
-            You can adjust the principal amount. Max: {formatCurrency(loan.remainingBalance)}
+            {isOldScheme
+              ? "Principal amount to deduct from balance."
+              : `You can adjust the principal amount. Max: ${formatCurrency(loan.remainingBalance)}`}
           </small>
         </div>
 

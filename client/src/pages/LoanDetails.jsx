@@ -63,6 +63,22 @@ const LoanDetails = () => {
     }
   };
 
+  const handleSchemeSwitch = async () => {
+    const nextType = loan.type === 'NEW' ? 'OLD' : 'NEW';
+    if (!window.confirm(`Are you sure you want to switch this loan to the ${nextType} scheme?`)) {
+      return;
+    }
+
+    try {
+      await api.put(`/loan/update-type/${loan.id}`, { type: nextType });
+      fetchLoan();
+      alert(`Loan switched to ${nextType} scheme successfully!`);
+    } catch (error) {
+      console.error('Error switching scheme:', error);
+      alert("Failed to switch scheme");
+    }
+  };
+
   const formatCurrency = (amount) => {
     return `₹ ${(amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
   };
@@ -114,6 +130,9 @@ const LoanDetails = () => {
         </h1>
         <div className="header-badges">
           <div className="id-badge">Loan #{id}</div>
+          <span className={`scheme-badge ${loan.type === 'OLD' ? 'scheme-old' : 'scheme-new'}`} style={{ marginRight: '8px' }}>
+            {loan.type} SCHEME
+          </span>
           {getStatusBadge(loan.status)}
         </div>
       </div>
@@ -154,6 +173,23 @@ const LoanDetails = () => {
           <div className="loan-info-item">
             <span className="loan-label">Created On</span>
             <span className="loan-value">{formatDate(loan.createdAt)}</span>
+          </div>
+          <div className="loan-info-item">
+            <span className="loan-label">Scheme Type</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span className={`scheme-badge ${loan.type === 'OLD' ? 'scheme-old' : 'scheme-new'}`}>
+                {loan.type}
+              </span>
+              {loan.status === 'ACTIVE' && (
+                <button
+                  onClick={handleSchemeSwitch}
+                  className="btn btn-secondary"
+                  style={{ padding: '2px 8px', fontSize: '0.75rem', height: 'auto' }}
+                >
+                  Switch to {loan.type === 'NEW' ? 'OLD' : 'NEW'}
+                </button>
+              )}
+            </div>
           </div>
         </div>
 

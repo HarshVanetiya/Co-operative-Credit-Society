@@ -22,10 +22,12 @@ model Account {
   id              Int              @id @default(autoincrement())
   accountNumber   String           @unique
   totalAmount     Float            @default(0)
+  releasedMoney   Float            @default(0)
   createdAt       DateTime         @default(now())
   memberId        Int              @unique
   member          Member           @relation(fields: [memberId], references: [id])
   transactionLogs TransactionLog[]
+  releasedLogs    ReleasedMoneyLog[]
 }
 
 model Operator {
@@ -53,6 +55,11 @@ model TransactionLog {
   createdAt      DateTime @default(now())
 }
 
+enum LoanType {
+  NEW
+  OLD
+}
+
 model Loan {
   id                Int           @id @default(autoincrement())
   memberId          Int
@@ -64,6 +71,7 @@ model Loan {
   remainingBalance  Float
   totalInterestPaid Float         @default(0)
   status            String        @default("ACTIVE")
+  type              LoanType      @default(NEW)
   createdAt         DateTime      @default(now())
   completedAt       DateTime?
   loanPayments      LoanPayment[]
@@ -95,5 +103,14 @@ model OrgWithdrawal {
   purpose   String
   amount    Float
   source    String   // "AMOUNT" or "PENALTY"
+  createdAt DateTime @default(now())
+}
+model ReleasedMoneyLog {
+  id        Int      @id @default(autoincrement())
+  accountId Int
+  account   Account  @relation(fields: [accountId], references: [id])
+  amount    Float
+  profit    Float?   @default(0)
+  type      String   // "RELEASE" or "SETTLEMENT"
   createdAt DateTime @default(now())
 }

@@ -1,25 +1,18 @@
 import { Router } from "express";
-import { 
-    createLoan, 
-    getLoan, 
-    getMemberLoans, 
-    getAllLoans, 
-    payLoanEmi, 
-    getLoanableAmount,
-    getMemberLoanPayments,
-    deleteLoanPayment
-} from "../controller/loan.controller.js";
+import * as loanController from "../controller/loan.controller.js";
 
 const router = Router();
 
-router.post("/create", createLoan);
-router.get("/get/:id", getLoan);
-router.get("/member/:memberId", getMemberLoans);
+router.post("/create", loanController.createLoan);
+router.get("/get/:id", loanController.getLoan);
+router.get("/member/:memberId", loanController.getMemberLoans);
 // Get all loan payments for a member
-router.get("/payments/member/:memberId", getMemberLoanPayments);
-router.get("/all", getAllLoans);
-router.post("/pay/:id", payLoanEmi);
-router.delete("/payment/:id", deleteLoanPayment);
-router.get("/available", getLoanableAmount);
+router.get("/payments/member/:memberId", loanController.getMemberLoanPayments);
+router.get("/all", loanController.getAllLoans);
+router.post("/pay/:id", loanController.payLoanEmi);
+router.post("/pay-old/:id", loanController.payOldLoanEmi);
+router.put("/update-type/:id", loanController.updateLoanType);
+router.delete("/payment/:id", loanController.deleteLoanPayment);
+router.get("/available", loanController.getLoanableAmount);
 
 export default router;

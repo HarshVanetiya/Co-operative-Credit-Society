@@ -122,7 +122,6 @@ const Dashboard = () => {
             </h2>
           </div>
         </div>
-
         <div className="stat-card-filled">
           <div className="stat-icon org">
             <Building2 size={28} />
@@ -131,6 +130,18 @@ const Dashboard = () => {
             <p className="stat-label">Total Penalty</p>
             <h2 className="stat-value">
               {loading ? '...' : formatCurrency(stats?.organisation?.penalty)}
+            </h2>
+          </div>
+        </div>
+
+        <div className="stat-card-filled" style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: 'white' }}>
+          <div className="stat-icon" style={{ background: 'rgba(255, 255, 255, 0.2)' }}>
+            <CircleDollarSign size={28} />
+          </div>
+          <div className="stat-info">
+            <p className="stat-label" style={{ color: 'rgba(255, 255, 255, 0.9)' }}>Released Money</p>
+            <h2 className="stat-value" style={{ color: 'white' }}>
+              {loading ? '...' : formatCurrency(stats?.totalReleasedAmount)}
             </h2>
           </div>
         </div>
@@ -156,12 +167,12 @@ const Dashboard = () => {
             <span>View All Expenses</span>
           </button>
         </div>
-      </div>
+      </div >
 
       {/* Loan & Profit Stats */}
-      <div className="section-divider">
+      < div className="section-divider" >
         <h2 className="section-heading">Loan & Profit Overview</h2>
-      </div>
+      </div >
 
       <div className="stats-grid loan-stats">
         <div className="stat-card-filled profit-card">
@@ -226,101 +237,105 @@ const Dashboard = () => {
       </div>
 
       {/* Recent Withdrawals */}
-      {withdrawals.length > 0 && (
-        <div className="withdrawal-history-section">
-          <div className="section-header">
-            <div className="section-header-alert">
-              <ArrowDownCircle size={24} />
-              <h2 className="section-heading">Recent Expenses</h2>
+      {
+        withdrawals.length > 0 && (
+          <div className="withdrawal-history-section">
+            <div className="section-header">
+              <div className="section-header-alert">
+                <ArrowDownCircle size={24} />
+                <h2 className="section-heading">Recent Expenses</h2>
+              </div>
+              {hasMoreWithdrawals && (
+                <button
+                  className="btn btn-small btn-secondary"
+                  onClick={() => navigate('/org-expenses')}
+                >
+                  View All →
+                </button>
+              )}
             </div>
-            {hasMoreWithdrawals && (
-              <button
-                className="btn btn-small btn-secondary"
-                onClick={() => navigate('/org-expenses')}
-              >
-                View All →
-              </button>
-            )}
-          </div>
 
-          <div className="card">
-            <div className="table-container">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Date & Time</th>
-                    <th>Purpose</th>
-                    <th>Source</th>
-                    <th>Amount</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {withdrawals.map((withdrawal) => (
-                    <tr key={withdrawal.id}>
-                      <td>{formatDate(withdrawal.createdAt)}</td>
-                      <td>{withdrawal.purpose}</td>
-                      <td>
-                        <span className={`source-badge ${withdrawal.source.toLowerCase()}`}>
-                          {withdrawal.source === 'AMOUNT' ? 'Org Amount' : 'Penalty Fund'}
-                        </span>
-                      </td>
-                      <td className="withdrawal-amount">{formatCurrency(withdrawal.amount)}</td>
+            <div className="card">
+              <div className="table-container">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Date & Time</th>
+                      <th>Purpose</th>
+                      <th>Source</th>
+                      <th>Amount</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {withdrawals.map((withdrawal) => (
+                      <tr key={withdrawal.id}>
+                        <td>{formatDate(withdrawal.createdAt)}</td>
+                        <td>{withdrawal.purpose}</td>
+                        <td>
+                          <span className={`source-badge ${withdrawal.source.toLowerCase()}`}>
+                            {withdrawal.source === 'AMOUNT' ? 'Org Amount' : 'Penalty Fund'}
+                          </span>
+                        </td>
+                        <td className="withdrawal-amount">{formatCurrency(withdrawal.amount)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* Missing Deposits Section */}
-      {!loading && stats?.membersWithPendingDeposits?.length > 0 && (
-        <div className="pending-deposits-section">
-          <div className="section-header-alert">
-            <AlertCircle size={24} />
-            <h2 className="section-heading">Members With Pending Deposits</h2>
-            <span className="count-badge">{stats.membersWithPendingDeposits.length}</span>
-          </div>
+      {
+        !loading && stats?.membersWithPendingDeposits?.length > 0 && (
+          <div className="pending-deposits-section">
+            <div className="section-header-alert">
+              <AlertCircle size={24} />
+              <h2 className="section-heading">Members With Pending Deposits</h2>
+              <span className="count-badge">{stats.membersWithPendingDeposits.length}</span>
+            </div>
 
-          <div className="card">
-            <div className="table-container">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Member</th>
-                    <th>Mobile</th>
-                    <th>Account No.</th>
-                    <th>Missed Months</th>
-                    <th>Deposits Due</th>
-                    <th>Penalty</th>
-                    <th>Total Suggested</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {stats.membersWithPendingDeposits.map((member) => (
-                    <tr
-                      key={member.id}
-                      className="clickable-row"
-                      onClick={() => navigate(`/members/${member.id}`)}
-                    >
-                      <td>{member.name || 'N/A'}</td>
-                      <td>{member.mobile}</td>
-                      <td>{member.accountNumber}</td>
-                      <td>
-                        <span className="missed-badge">{member.missedMonths} month(s)</span>
-                      </td>
-                      <td>{formatCurrency(member.breakdown.deposits)}</td>
-                      <td className="penalty-amount">{formatCurrency(member.breakdown.penalty)}</td>
-                      <td className="suggested-total">{formatCurrency(member.suggestedPayment)}</td>
+            <div className="card">
+              <div className="table-container">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Member</th>
+                      <th>Mobile</th>
+                      <th>Account No.</th>
+                      <th>Missed Months</th>
+                      <th>Deposits Due</th>
+                      <th>Penalty</th>
+                      <th>Total Suggested</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {stats.membersWithPendingDeposits.map((member) => (
+                      <tr
+                        key={member.id}
+                        className="clickable-row"
+                        onClick={() => navigate(`/members/${member.id}`)}
+                      >
+                        <td>{member.name || 'N/A'}</td>
+                        <td>{member.mobile}</td>
+                        <td>{member.accountNumber}</td>
+                        <td>
+                          <span className="missed-badge">{member.missedMonths} month(s)</span>
+                        </td>
+                        <td>{formatCurrency(member.breakdown.deposits)}</td>
+                        <td className="penalty-amount">{formatCurrency(member.breakdown.penalty)}</td>
+                        <td className="suggested-total">{formatCurrency(member.suggestedPayment)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* Audit Modal */}
       <AuditModal
@@ -339,7 +354,7 @@ const Dashboard = () => {
         orgAmount={stats?.organisation?.amount || 0}
         penaltyAmount={stats?.organisation?.penalty || 0}
       />
-    </div>
+    </div >
   );
 };
 

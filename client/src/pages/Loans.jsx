@@ -341,6 +341,7 @@ const Loans = () => {
                     <th className="text-right">Principal</th>
                     <th className="text-right">Interest Rate</th>
                     <th>Time Period</th>
+                    <th>Type</th>
                     <th className="text-right">EMI</th>
                     <th className="text-right">Remaining</th>
                     <th>Status</th>
@@ -364,6 +365,11 @@ const Loans = () => {
                       <td className="text-right">{formatCurrency(loan.principalAmount)}</td>
                       <td className="text-right">{(loan.interestRate * 100).toFixed(1)}%</td>
                       <td>{loan.timePeriod} months</td>
+                      <td>
+                        <span className={`scheme-badge ${loan.type === 'OLD' ? 'scheme-old' : 'scheme-new'}`}>
+                          {loan.type}
+                        </span>
+                      </td>
                       <td className="text-right">{formatCurrency(loan.emiAmount)}</td>
                       <td className="text-right remaining-balance">
                         {formatCurrency(loan.remainingBalance)}
