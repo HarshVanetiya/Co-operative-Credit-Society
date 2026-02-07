@@ -8,6 +8,7 @@ import auditRouter from "./audit.router.js";
 import withdrawalRouter from "./withdrawal.router.js";
 import reportRouter from "./report.router.js";
 import releasedMoneyRouter from "./releasedMoney.router.js";
+import backupRouter from "./backup.router.js";
 import { authMiddleware } from "../middleware/auth.js";
 
 const router = express.Router();
@@ -24,5 +25,6 @@ router.use("/audit", auditRouter);
 router.use("/withdrawal", withdrawalRouter);
 router.use("/report", reportRouter);
 router.use("/released-money", releasedMoneyRouter);
+router.use("/backup", backupRouter);
 
 export default router;

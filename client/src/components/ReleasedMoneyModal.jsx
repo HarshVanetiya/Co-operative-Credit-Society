@@ -89,7 +89,7 @@ const ReleasedMoneyModal = ({ isOpen, onClose, member, onSuccess }) => {
     if (!member) return null;
 
     return (
-        <Modal isOpen={isOpen} onClose={handleClose} title="Released Money Management">
+        <Modal isOpen={isOpen} onClose={handleClose} title="Release Money Management">
             <div className="modal-tabs">
                 <button
                     className={`modal-tab ${activeTab === 'release' ? 'active' : ''}`}

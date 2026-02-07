@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Users, IndianRupee, Building2, TrendingUp, CircleDollarSign, AlertCircle, ClipboardCheck, Wallet, ArrowDownCircle, ExternalLink } from 'lucide-react';
+import { Users, IndianRupee, Building2, TrendingUp, CircleDollarSign, AlertCircle, ClipboardCheck, Wallet, ArrowDownCircle, ExternalLink, Download, Database } from 'lucide-react';
 import api from '../lib/api';
 import AuditModal from '../components/AuditModal';
 import WithdrawalModal from '../components/WithdrawalModal';
@@ -15,6 +15,7 @@ const Dashboard = () => {
   const [isWithdrawalModalOpen, setIsWithdrawalModalOpen] = useState(false);
   const [withdrawals, setWithdrawals] = useState([]);
   const [hasMoreWithdrawals, setHasMoreWithdrawals] = useState(false);
+  const [backupLoading, setBackupLoading] = useState(false);
 
   useEffect(() => {
     fetchStats();
@@ -46,6 +47,37 @@ const Dashboard = () => {
   const handleWithdrawalSuccess = () => {
     fetchStats();
     fetchWithdrawals();
+  };
+
+  const handleBackup = async () => {
+    setBackupLoading(true);
+    try {
+      const response = await api.get('/backup/download', {
+        responseType: 'blob'
+      });
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+
+      // Get filename from content-disposition header if available
+      const contentDisposition = response.headers['content-disposition'];
+      let filename = `bank_backup_${new Date().toISOString().split('T')[0]}.zip`;
+      if (contentDisposition && contentDisposition.includes('filename=')) {
+        filename = contentDisposition.split('filename=')[1].replace(/"/g, '');
+      }
+
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Backup failed', error);
+      alert('Failed to download system backup.');
+    } finally {
+      setBackupLoading(false);
+    }
   };
 
   const formatCurrency = (amount) => {
@@ -139,7 +171,7 @@ const Dashboard = () => {
             <CircleDollarSign size={28} />
           </div>
           <div className="stat-info">
-            <p className="stat-label" style={{ color: 'rgba(255, 255, 255, 0.9)' }}>Released Money</p>
+            <p className="stat-label" style={{ color: 'rgba(255, 255, 255, 0.9)' }}>Advance Money</p>
             <h2 className="stat-value" style={{ color: 'white' }}>
               {loading ? '...' : formatCurrency(stats?.totalReleasedAmount)}
             </h2>
@@ -165,6 +197,15 @@ const Dashboard = () => {
           >
             <ExternalLink size={20} />
             <span>View All Expenses</span>
+          </button>
+          <button
+            className="btn btn-secondary"
+            onClick={handleBackup}
+            disabled={backupLoading}
+            style={{ border: '1px solid #4f46e5', color: '#4f46e5' }}
+          >
+            {backupLoading ? <Database size={20} className="animate-spin" /> : <Download size={20} />}
+            <span>{backupLoading ? 'Generating...' : 'Backup System Data'}</span>
           </button>
         </div>
       </div >

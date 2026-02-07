@@ -36,7 +36,7 @@ const History = () => {
       params.append('page', page);
       params.append('limit', 20);
 
-      const res = await api.get(`/transaction/list?${params}`);
+      const res = await api.get(`/transaction/unified-list?${params}`);
       setTransactions(res.data.data);
       setPagination(res.data.pagination);
     } catch (error) {
@@ -52,7 +52,11 @@ const History = () => {
     }
 
     try {
-      await api.delete(`/transaction/${id}`);
+      if (id.startsWith('tx_')) {
+        await api.delete(`/transaction/${id.replace('tx_', '')}`);
+      } else if (id.startsWith('lp_')) {
+        await api.delete(`/loan/payment/${id.replace('lp_', '')}`);
+      }
       // Refresh list
       fetchTransactions(filters, pagination.page);
     } catch (error) {
@@ -97,7 +101,7 @@ const History = () => {
   };
 
   const formatCurrency = (amount) => {
-    return `₹ ${(amount || 0).toLocaleString()}`;
+    return `₹ ${Math.round(parseFloat(amount || 0)).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
   };
 
   return (
@@ -199,12 +203,13 @@ const History = () => {
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th>Date & Time</th>
-                    <th>Member Name</th>
-                    <th>Account No.</th>
-                    <th>Mobile</th>
-                    <th>Basic Pay</th>
+                    <th>Ac No.</th>
+                    <th>Member (Father)</th>
+                    <th>Date</th>
+                    <th>Instalment</th>
                     <th>Dev Fee</th>
+                    <th>Loan Principal</th>
+                    <th>Interest</th>
                     <th>Penalty</th>
                     <th>Total</th>
                     <th>Actions</th>
@@ -212,16 +217,26 @@ const History = () => {
                 </thead>
                 <tbody>
                   {transactions.map((tx) => {
-                    const total = (tx.basicPay || 0) + (tx.developmentFee || 0) + (tx.penalty || 0);
+                    const total = (tx.basicPay || 0) + (tx.developmentFee || 0) + (tx.penalty || 0) + (tx.principalPaid || 0) + (tx.interestPaid || 0);
+                    const hasLoan = tx.loanId || tx.isSmart || tx.principalPaid > 0 || tx.interestPaid > 0;
+
                     return (
                       <tr key={tx.id}>
-                        <td>{formatDate(tx.createdAt)}</td>
-                        <td>{tx.member?.name || 'N/A'}</td>
-                        <td className="font-mono">{tx.account?.accountNumber || 'N/A'}</td>
-                        <td>{tx.member?.mobile || 'N/A'}</td>
-                        <td>{formatCurrency(tx.basicPay)}</td>
-                        <td>{formatCurrency(tx.developmentFee)}</td>
-                        <td>{formatCurrency(tx.penalty)}</td>
+                        <td className="font-mono">{tx.accountNumber || 'N/A'}</td>
+                        <td>
+                          <div style={{ fontWeight: 500 }}>{tx.member?.name || 'N/A'}</div>
+                          <div style={{ fontSize: '0.8rem', color: '#666' }}>({tx.member?.fathersName || 'N/A'})</div>
+                        </td>
+                        <td>{formatDate(tx.date)}</td>
+                        <td>{tx.basicPay > 0 ? formatCurrency(tx.basicPay) : '0'}</td>
+                        <td>{tx.developmentFee > 0 ? formatCurrency(tx.developmentFee) : '0'}</td>
+                        <td style={{ color: hasLoan ? 'inherit' : '#ccc' }}>
+                          {hasLoan ? formatCurrency(tx.principalPaid) : 'na'}
+                        </td>
+                        <td style={{ color: hasLoan ? 'inherit' : '#ccc' }}>
+                          {hasLoan ? formatCurrency(tx.interestPaid) : 'na'}
+                        </td>
+                        <td>{tx.penalty > 0 ? formatCurrency(tx.penalty) : '0'}</td>
                         <td className="font-bold">{formatCurrency(total)}</td>
                         <td>
                           <button

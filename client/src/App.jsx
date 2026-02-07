@@ -3,6 +3,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Members from './pages/Members';
 import MemberDetails from './pages/MemberDetails';
+import History from './pages/History';
 import Loans from './pages/Loans';
 import LoanDetails from './pages/LoanDetails';
 import OrgExpenses from './pages/OrgExpenses';
@@ -20,6 +21,7 @@ function App() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/members" element={<Members />} />
           <Route path="/members/:id" element={<MemberDetails />} />
+          <Route path="/history" element={<History />} />
           <Route path="/loans" element={<Loans />} />
           <Route path="/loans/:id" element={<LoanDetails />} />
           <Route path="/org-expenses" element={<OrgExpenses />} />

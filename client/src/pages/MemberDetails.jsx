@@ -82,7 +82,7 @@ const MemberDetails = () => {
       const res = await api.get(`/released-money/logs/${id}`);
       setReleasedLogs(res.data);
     } catch (error) {
-      console.error('Error fetching released money logs', error);
+      console.error('Error fetching advance money logs', error);
     } finally {
       setLoadingReleasedLogs(false);
     }
@@ -258,7 +258,7 @@ const MemberDetails = () => {
                   />
                 </div>
                 <div className="form-group">
-                  <label className="label">Released Money</label>
+                  <label className="label">Advance Money</label>
                   <input
                     type="text"
                     value={`₹ ${Math.round(member.account.releasedMoney || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`}
@@ -298,7 +298,7 @@ const MemberDetails = () => {
               onClick={() => setIsReleasedMoneyModalOpen(true)}
             >
               <CircleDollarSign size={20} />
-              <span>Released Money</span>
+              <span>Advance Money</span>
             </button>
             <button type="submit" className="btn btn-primary" disabled={saving}>
               {saving ? <Loader size={20} className="animate-spin" /> : <Save size={20} />}
@@ -462,7 +462,7 @@ const MemberDetails = () => {
         <div className="section-header">
           <h3 className="section-title">
             <CircleDollarSign size={20} />
-            Released Money History
+            Advance Money History
           </h3>
         </div>
 

@@ -380,3 +380,160 @@ export const smartDistribute = async (req, res) => {
         res.status(500).json({ error: error.message || "Failed to process smart distribution" });
     }
 };
+// Get unified history of transactions and loan payments
+export const getUnifiedHistory = async (req, res) => {
+    const { name, accountNumber, mobile, startDate, endDate, page = 1, limit = 20 } = req.query;
+
+    try {
+        const pageNum = parseInt(page);
+        const limitNum = parseInt(limit);
+        const skip = (pageNum - 1) * limitNum;
+
+        // Build where clauses for both models
+        const txWhere = {};
+        const loanWhere = { loan: {} };
+
+        if (name || mobile) {
+            txWhere.member = {};
+            loanWhere.loan.member = {};
+            if (name) {
+                txWhere.member.name = { contains: name, mode: 'insensitive' };
+                loanWhere.loan.member.name = { contains: name, mode: 'insensitive' };
+            }
+            if (mobile) {
+                txWhere.member.mobile = { contains: mobile };
+                loanWhere.loan.member.mobile = { contains: mobile };
+            }
+        }
+
+        if (accountNumber) {
+            txWhere.account = { accountNumber: { contains: accountNumber } };
+            loanWhere.loan.member.account = { accountNumber: { contains: accountNumber } };
+        }
+
+        if (startDate || endDate) {
+            const dateFilter = {};
+            if (startDate) dateFilter.gte = new Date(startDate);
+            if (endDate) {
+                const end = new Date(endDate);
+                end.setHours(23, 59, 59, 999);
+                dateFilter.lte = end;
+            }
+            txWhere.createdAt = dateFilter;
+            loanWhere.createdAt = dateFilter;
+        }
+
+        // Fetch both (without limit first to merge, or we might need a more complex query)
+        // For efficiency, we'll fetch a larger set and then group
+        // If it's a small app, this is fine. For large apps, we'd need a view or union.
+        const [transactions, loanPayments] = await Promise.all([
+            prisma.transactionLog.findMany({
+                where: txWhere,
+                include: {
+                    member: { select: { id: true, name: true, fathersName: true, mobile: true } },
+                    account: { select: { id: true, accountNumber: true } }
+                },
+                orderBy: { createdAt: 'desc' },
+                take: limitNum * 2 // Fetch more to account for grouping
+            }),
+            prisma.loanPayment.findMany({
+                where: loanWhere,
+                include: {
+                    loan: {
+                        include: {
+                            member: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    fathersName: true,
+                                    mobile: true,
+                                    account: { select: { accountNumber: true } }
+                                }
+                            }
+                        }
+                    }
+                },
+                orderBy: { createdAt: 'desc' },
+                take: limitNum * 2
+            })
+        ]);
+
+        // Merge and group by (memberId + timestamp rounded to seconds)
+        const unifiedMap = new Map();
+
+        const getGroupKey = (memberId, date) => `${memberId}_${Math.floor(new Date(date).getTime() / 1000)}`;
+
+        transactions.forEach(tx => {
+            const key = getGroupKey(tx.memberId, tx.createdAt);
+            unifiedMap.set(key, {
+                id: `tx_${tx.id}`,
+                date: tx.createdAt,
+                member: tx.member,
+                accountNumber: tx.account.accountNumber,
+                basicPay: tx.basicPay,
+                developmentFee: tx.developmentFee,
+                penalty: tx.penalty,
+                principalPaid: 0,
+                interestPaid: 0,
+                isSmart: false
+            });
+        });
+
+        loanPayments.forEach(lp => {
+            const member = lp.loan.member;
+            const key = getGroupKey(member.id, lp.createdAt);
+
+            if (unifiedMap.has(key)) {
+                // Merge with existing transaction (likely from smart distribution)
+                const existing = unifiedMap.get(key);
+                existing.principalPaid = lp.principalPaid;
+                existing.interestPaid = lp.interestPaid;
+                existing.penalty += lp.penalty;
+                existing.isSmart = true;
+                existing.loanId = lp.loanId;
+            } else {
+                unifiedMap.set(key, {
+                    id: `lp_${lp.id}`,
+                    date: lp.createdAt,
+                    member: {
+                        id: member.id,
+                        name: member.name,
+                        fathersName: member.fathersName,
+                        mobile: member.mobile
+                    },
+                    accountNumber: member.account.accountNumber,
+                    basicPay: 0,
+                    developmentFee: 0,
+                    penalty: lp.penalty,
+                    principalPaid: lp.principalPaid,
+                    interestPaid: lp.interestPaid,
+                    isSmart: false,
+                    loanId: lp.loanId
+                });
+            }
+        });
+
+        // Convert to array and sort
+        let combined = Array.from(unifiedMap.values()).sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        // Total for pagination (approximate if we don't fetch everything)
+        // For a strictly correct total, we'd need to fetch all IDs or use a SQL UNION
+        const total = combined.length;
+
+        // Apply pagination
+        const paginated = combined.slice(skip, skip + limitNum);
+
+        res.status(200).json({
+            data: paginated,
+            pagination: {
+                page: pageNum,
+                limit: limitNum,
+                total: total,
+                totalPages: Math.ceil(total / limitNum)
+            }
+        });
+    } catch (error) {
+        console.error("Error fetching unified history:", error);
+        res.status(500).json({ error: "Failed to fetch unified history" });
+    }
+};
