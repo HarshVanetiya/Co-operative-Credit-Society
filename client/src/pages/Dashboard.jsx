@@ -5,6 +5,7 @@ import { Users, IndianRupee, Building2, TrendingUp, CircleDollarSign, AlertCircl
 import api from '../lib/api';
 import AuditModal from '../components/AuditModal';
 import WithdrawalModal from '../components/WithdrawalModal';
+import CashBreakdownModal from '../components/CashBreakdownModal';
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -13,6 +14,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [isAuditModalOpen, setIsAuditModalOpen] = useState(false);
   const [isWithdrawalModalOpen, setIsWithdrawalModalOpen] = useState(false);
+  const [isCashModalOpen, setIsCashModalOpen] = useState(false);
   const [withdrawals, setWithdrawals] = useState([]);
   const [hasMoreWithdrawals, setHasMoreWithdrawals] = useState(false);
   const [backupLoading, setBackupLoading] = useState(false);
@@ -107,14 +109,18 @@ const Dashboard = () => {
 
       {/* Primary Stats Cards */}
       <div className="stats-grid">
-        <div className="stat-card-filled" style={{ background: 'linear-gradient(135deg, #4f46e5, #06b6d4)', color: 'white' }}>
+        <div
+          className="stat-card-filled clickable"
+          style={{ background: 'linear-gradient(135deg, #4f46e5, #06b6d4)', color: 'white', cursor: 'pointer' }}
+          onClick={() => setIsCashModalOpen(true)}
+        >
           <div className="stat-icon" style={{ background: 'rgba(255, 255, 255, 0.2)' }}>
             <Wallet size={28} />
           </div>
           <div className="stat-info">
             <p className="stat-label" style={{ color: 'rgba(255, 255, 255, 0.9)' }}>Cash in Hand</p>
             <h2 className="stat-value" style={{ color: 'white' }}>
-              {loading ? '...' : formatCurrency(stats?.cashInHand)}
+              {loading ? '...' : 'View Breakdown'}
             </h2>
           </div>
         </div>
@@ -162,6 +168,18 @@ const Dashboard = () => {
             <p className="stat-label">Total Penalty</p>
             <h2 className="stat-value">
               {loading ? '...' : formatCurrency(stats?.organisation?.penalty)}
+            </h2>
+          </div>
+        </div>
+
+        <div className="stat-card-filled">
+          <div className="stat-icon" style={{ background: 'linear-gradient(135deg, #ef4444, #f87171)', color: 'white' }}>
+            <ArrowDownCircle size={28} />
+          </div>
+          <div className="stat-info">
+            <p className="stat-label">Total Expenses</p>
+            <h2 className="stat-value">
+              {loading ? '...' : formatCurrency(stats?.totalExpenses)}
             </h2>
           </div>
         </div>
@@ -236,17 +254,6 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <div className="stat-card-filled">
-          <div className="stat-icon loanable">
-            <CircleDollarSign size={28} />
-          </div>
-          <div className="stat-info">
-            <p className="stat-label">Available for Loan</p>
-            <h2 className="stat-value">
-              {loading ? '...' : formatCurrency(stats?.loanableAmount)}
-            </h2>
-          </div>
-        </div>
 
         <div className="stat-card-filled">
           <div className="stat-icon active-loans">
@@ -394,6 +401,13 @@ const Dashboard = () => {
         onSuccess={handleWithdrawalSuccess}
         orgAmount={stats?.organisation?.amount || 0}
         penaltyAmount={stats?.organisation?.penalty || 0}
+      />
+
+      {/* Cash Breakdown Modal */}
+      <CashBreakdownModal
+        isOpen={isCashModalOpen}
+        onClose={() => setIsCashModalOpen(false)}
+        stats={stats}
       />
     </div >
   );

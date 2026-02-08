@@ -46,8 +46,14 @@ export const getOverviewStats = async (req, res) => {
         // Calculate loanable amount
         const loanableAmount = totalMembersAmount - totalLoanedAmount;
 
-        // Calculate Cash in Hand (Org Amount + Penalty Fund + Available for Loan - Released Money)
-        const cashInHand = (organisation.amount || 0) + (organisation.penalty || 0) + loanableAmount - totalReleasedAmount;
+        // Get total expenses (sum of all withdrawals)
+        const withdrawalsAggregate = await prisma.orgWithdrawal.aggregate({
+            _sum: { amount: true }
+        });
+        const totalExpenses = withdrawalsAggregate._sum.amount || 0;
+
+        // Calculate Cash in Hand (Org Amount + Penalty Fund + Interest Earned + Available for Loan - Released Money)
+        const cashInHand = (organisation.amount || 0) + (organisation.penalty || 0) + (organisation.profit || 0) + loanableAmount - totalReleasedAmount;
 
         // Get members who haven't deposited this month
         const now = new Date();
@@ -69,6 +75,7 @@ export const getOverviewStats = async (req, res) => {
             totalLoanedAmount,
             totalReleasedAmount,
             loanableAmount,
+            totalExpenses,
             cashInHand,
             membersWithPendingDeposits
         });

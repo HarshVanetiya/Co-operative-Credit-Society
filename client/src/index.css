@@ -1531,3 +1531,59 @@ h1, h2, h3, h4, h5, h6 {
 .clickable-row {
   cursor: pointer;
 }
+
+/* Cash Breakdown Modal */
+.cash-breakdown-container {
+  padding: 0.5rem 0;
+}
+.breakdown-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.breakdown-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.95rem;
+}
+.breakdown-label {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--text-muted);
+}
+.breakdown-value {
+  font-weight: 600;
+  font-family: monospace;
+  color: var(--text-main);
+}
+.icon-plus { color: #10b981; }
+.icon-minus { color: #ef4444; }
+.breakdown-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 0.5rem 0;
+}
+.subtraction {
+  opacity: 0.9;
+}
+.breakdown-total {
+  margin-top: 1rem;
+  padding: 1.25rem;
+  background: var(--primary-light);
+  border-radius: 0.75rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid var(--primary);
+}
+.breakdown-total .breakdown-label {
+  color: var(--primary);
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+.breakdown-total .breakdown-value.primary {
+  color: var(--primary);
+  font-size: 1.25rem;
+}

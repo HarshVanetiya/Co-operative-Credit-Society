@@ -22,9 +22,9 @@ const calculateCashInHand = async (tx) => {
     });
     const totalLoanedAmount = activeLoansAggregate._sum.remainingBalance || 0;
 
-    // Formula: (Org Amount + Penalty + Total Member Savings) - Total Loans - Total Released
+    // Formula: (Org Amount + Penalty + Profit + Total Member Savings) - Total Loans - Total Released
     const loanableAmount = totalMembersAmount - totalLoanedAmount;
-    return (org.amount || 0) + (org.penalty || 0) + loanableAmount - totalReleasedAmount;
+    return (org.amount || 0) + (org.penalty || 0) + (org.profit || 0) + loanableAmount - totalReleasedAmount;
 };
 
 export const releaseCash = async (req, res) => {

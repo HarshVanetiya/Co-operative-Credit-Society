@@ -64,26 +64,26 @@ const ReceiptModal = ({ isOpen, onClose, member }) => {
     const pdfCurrency = (val) => `Rs. ${Math.round(val || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
 
     // Add Header
-    doc.setFontSize(18);
+    doc.setFontSize(22);
     doc.setTextColor(40, 40, 40);
     doc.text('Monthly Transaction Receipt', 105, 15, { align: 'center' });
 
-    doc.setFontSize(12);
-    doc.text('Co-operative Bank', 105, 22, { align: 'center' }); // Replace with actual org name if available
+    doc.setFontSize(14);
+    doc.text('Co-operative Bank', 105, 23, { align: 'center' }); // Replace with actual org name if available
 
     // Member Details
-    doc.setFontSize(10);
-    doc.text(`Member Name: ${member.name}`, 14, 35);
-    doc.text(`Mobile: ${member.mobile}`, 14, 40);
-    doc.text(`Account No: ${member.account?.accountNumber || 'N/A'}`, 14, 45);
-    doc.text(`Period: ${months[month]} ${year}`, 150, 35);
+    doc.setFontSize(12);
+    doc.text(`Member Name: ${member.name}`, 14, 38);
+    doc.text(`Mobile: ${member.mobile}`, 14, 45);
+    doc.text(`Account No: ${member.account?.accountNumber || 'N/A'}`, 14, 52);
+    doc.text(`Period: ${months[month]} ${year}`, 150, 38);
 
-    let currentY = 55;
+    let currentY = 65;
     let grandTotal = 0;
 
     // --- Regular Transactions Table ---
     if (transactions.length > 0) {
-      doc.setFontSize(12);
+      doc.setFontSize(14);
       doc.text('Regular Deposits', 14, currentY - 5);
 
       const tableColumn = ["Date", "Basic Pay", "Dev Fee", "Penalty", "Total"];
@@ -129,7 +129,7 @@ const ReceiptModal = ({ isOpen, onClose, member }) => {
         startY: currentY,
         theme: 'grid',
         headStyles: { fillColor: [66, 133, 244] },
-        styles: { fontSize: 9 },
+        styles: { fontSize: 11 },
         footStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: 'bold' }
       });
 
@@ -138,7 +138,7 @@ const ReceiptModal = ({ isOpen, onClose, member }) => {
 
     // --- Loan Payments Table ---
     if (loanPayments.length > 0) {
-      doc.setFontSize(12);
+      doc.setFontSize(14);
       doc.text('Loan Repayments', 14, currentY - 5);
 
       const loanColumns = ["Date", "Principal", "Interest", "Penalty", "Total Paid"];
@@ -182,7 +182,7 @@ const ReceiptModal = ({ isOpen, onClose, member }) => {
         startY: currentY,
         theme: 'grid',
         headStyles: { fillColor: [255, 112, 67] }, // Orange for Loans
-        styles: { fontSize: 9 },
+        styles: { fontSize: 11 },
         footStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: 'bold' }
       });
 
@@ -190,7 +190,7 @@ const ReceiptModal = ({ isOpen, onClose, member }) => {
     }
 
     // --- Grand Total ---
-    doc.setFontSize(14);
+    doc.setFontSize(18);
     doc.setTextColor(0, 0, 0);
     doc.text(`Grand Total: ${pdfCurrency(grandTotal)}`, 140, currentY, { align: 'right' });
 

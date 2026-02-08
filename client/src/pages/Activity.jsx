@@ -33,10 +33,10 @@ const Activity = () => {
             const pdfCurrency = (val) => `Rs. ${Math.round(parseFloat(val || 0)).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
 
             // Member Status PDF
-            doc.setFontSize(18);
+            doc.setFontSize(22);
             doc.text(`Member Status Report`, 14, 20);
 
-            doc.setFontSize(12);
+            doc.setFontSize(14);
             doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
             doc.text(`Total Members: ${statusRows.length}`, 14, 40);
 
@@ -67,16 +67,16 @@ const Activity = () => {
                 body: tableRows,
                 startY: 50,
                 theme: 'grid',
-                styles: { fontSize: 8, cellPadding: 2, overflow: 'linebreak' },
+                styles: { fontSize: 10, cellPadding: 1.5, overflow: 'linebreak' },
                 headStyles: { fillColor: [79, 70, 229] },
                 columnStyles: {
                     0: { cellWidth: 15 }, // Account
                     1: { cellWidth: 35 }, // Name
                     2: { cellWidth: 35 }, // Father's Name
                     3: { cellWidth: 25, halign: 'right' }, // Loan Bal
-                    4: { cellWidth: 40 }, // Expected Amt
-                    5: { cellWidth: 20 }, // Member Sig
-                    6: { cellWidth: 20 }  // Office Sig
+                    4: { cellWidth: 45 }, // Expected Amt
+                    5: { cellWidth: 15 }, // Member Sig
+                    6: { cellWidth: 15 }  // Office Sig
                 }
             });
             doc.save(`Member_Status_${new Date().toISOString().slice(0, 10)}.pdf`);
