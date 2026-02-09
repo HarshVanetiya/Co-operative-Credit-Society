@@ -27,27 +27,31 @@ const Activity = () => {
 
     const downloadPDF = () => {
         try {
-            const doc = new jsPDF();
+            const doc = new jsPDF({ unit: "in", format: "letter" });
             // Helper for PDF currency to avoid glyph issues with ₹
             const pdfCurrency = (val) =>
                 `${Math.round(parseFloat(val || 0)).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
 
             // Member Status PDF
-            doc.setFontSize(18);
-            doc.text(`Uba Ganesh ji alp bachat samiti`, 14, 20);
+            const margin = 0.5;
+            const now = new Date();
+            const month = String(now.getMonth() + 1).padStart(2, "0");
+            const year = now.getFullYear();
 
-            doc.setFontSize(11);
-            doc.text(
-                `Generated on: ${new Date().toLocaleDateString()}`,
-                14,
-                30,
-            );
+            doc.setFontSize(18);
+            doc.text(`Phul Mali Uba Ganesh Ji Alp Bachat Samiti`, 4.25, 0.7, {
+                align: "center",
+            });
+
+            doc.setFontSize(10);
+            doc.text(`Generated on: ${month}-${year}`, margin, 1.0);
 
             const tableColumn = [
                 "A.N.",
                 "Name",
                 "Loan Bal",
                 "Expected Amt",
+                "Sum",
                 "Office",
                 "Member",
             ];
@@ -59,7 +63,13 @@ const Activity = () => {
                 const loanInterest = b.loanInterest || 0;
                 const total = basic + devFee + loanPrincipal + loanInterest;
 
-                const breakdownStr = `${basic} + ${devFee}${loanPrincipal > 0 ? " + " + loanPrincipal.toFixed(0) : ""}${loanInterest > 0 ? " + " + loanInterest.toFixed(0) : ""} = ${Math.round(total).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
+                const breakdownParts = [
+                    basic,
+                    devFee,
+                    loanPrincipal > 0 ? loanPrincipal.toFixed(0) : null,
+                    loanInterest > 0 ? loanInterest.toFixed(0) : null,
+                ].filter((part) => part !== null);
+                const breakdownStr = breakdownParts.join("+");
 
                 return [
                     item.accountNumber,
@@ -68,27 +78,27 @@ const Activity = () => {
                         ? pdfCurrency(item.remainingLoanPrincipal)
                         : "0",
                     breakdownStr,
+                    Math.round(total).toLocaleString("en-IN", {
+                        maximumFractionDigits: 0,
+                    }),
                     "", // Office
                     "", // Member
                 ];
             });
 
-            const grandTotal = statusRows.reduce((sum, item) => {
-                const b = item.breakdown || {};
-                const basic = b.basic || 500;
-                const devFee = b.devFee || 20;
-                const loanPrincipal = b.loanPrincipal || 0;
-                const loanInterest = b.loanInterest || 0;
-                return sum + basic + devFee + loanPrincipal + loanInterest;
+            const loanBalTotal = statusRows.reduce((sum, item) => {
+                const loanBal = parseFloat(item.remainingLoanPrincipal || 0);
+                return sum + (loanBal > 0 ? loanBal : 0);
             }, 0);
 
             tableRows.push([
                 "",
                 "Grand Total",
-                "",
-                Math.round(grandTotal).toLocaleString("en-IN", {
+                Math.round(loanBalTotal).toLocaleString("en-IN", {
                     maximumFractionDigits: 0,
                 }),
+                "",
+                "",
                 "",
                 "",
             ]);
@@ -96,29 +106,36 @@ const Activity = () => {
             autoTable(doc, {
                 head: [tableColumn],
                 body: tableRows,
-                startY: 40,
+                startY: 1.3,
+                margin: {
+                    left: margin,
+                    right: margin,
+                    top: margin,
+                    bottom: margin,
+                },
                 theme: "grid",
                 styles: {
                     fontSize: 12,
-                    cellPadding: 1.5,
+                    cellPadding: 0.04,
                     overflow: "linebreak",
                     lineColor: [0, 0, 0],
-                    lineWidth: 0.3,
+                    lineWidth: 0.01,
                 },
                 headStyles: {
                     fillColor: [255, 255, 255],
                     textColor: [0, 0, 0],
                     fontSize: 12,
                     lineColor: [0, 0, 0],
-                    lineWidth: 0.3,
+                    lineWidth: 0.01,
                 },
                 columnStyles: {
-                    0: { cellWidth: 15 }, // Account
-                    1: { cellWidth: 45 }, // Name
-                    2: { cellWidth: 25, halign: "right" }, // Loan Bal
-                    3: { cellWidth: 55 }, // Expected Amt
-                    4: { cellWidth: 15 }, // Office
-                    5: { cellWidth: 15 }, // Member
+                    0: { cellWidth: 0.5 }, // A.N.
+                    1: { cellWidth: 1.85 }, // Name
+                    2: { cellWidth: 0.9, halign: "right" }, // Loan Bal
+                    3: { cellWidth: 1.8 }, // Expected Amt
+                    4: { cellWidth: 0.7, halign: "right" }, // Per Person
+                    5: { cellWidth: 0.85 }, // Office
+                    6: { cellWidth: 0.85 }, // Member
                 },
             });
             doc.save(
