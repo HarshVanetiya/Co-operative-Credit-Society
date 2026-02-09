@@ -135,7 +135,7 @@ const deleteLoanSafely = async (loanId) => {
 async function main() {
     console.log("🌱 Starting database seed...");
 
-    await createOrganisation()
+    // await createOrganisation()
     await createOperator()
     // await deleteAllMembers()
     // await deleteAllOperator()
